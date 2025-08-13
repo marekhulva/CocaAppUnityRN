@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 import { CheckCircle2, House, BarChart3, User2 } from 'lucide-react-native';
 import { DailyScreenVibrant } from './src/features/daily/DailyScreenVibrant';
 import { SocialScreen } from './src/features/social/SocialScreen';
-import { ProgressScreenVibrant } from './src/features/progress/ProgressScreenVibrant';
+import { ProgressEnhanced } from './src/features/progress/ProgressEnhanced';
 import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
 
 const Tab = createBottomTabNavigator();
@@ -74,7 +74,7 @@ export const RootNav = () => {
               </View>
             )
           }} />
-        <Tab.Screen name="Progress" component={ProgressScreenVibrant}
+        <Tab.Screen name="Progress" component={ProgressEnhanced}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
