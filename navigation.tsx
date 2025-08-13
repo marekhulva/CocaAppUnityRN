@@ -1,8 +1,11 @@
 import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { CheckCircle2, House, BarChart3, User2 } from 'lucide-react-native';
-import { DailyScreen } from './src/features/daily/DailyScreen';
+import { DailyScreenVibrant } from './src/features/daily/DailyScreenVibrant';
 import { SocialScreen } from './src/features/social/SocialScreen';
 import { ProgressScreen } from './src/features/progress/ProgressScreen';
 import { ProfileScreen } from './src/features/profile/ProfileScreen';
@@ -11,7 +14,7 @@ const Tab = createBottomTabNavigator();
 
 const navTheme = {
   ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: '#000000', card: '#000000', text: '#FFFFFF', border: 'rgba(255,255,255,0.08)' },
+  colors: { ...DefaultTheme.colors, background: 'transparent', card: 'transparent', text: '#FFFFFF', border: 'transparent' },
 };
 
 export const RootNav = () => {
@@ -20,19 +23,81 @@ export const RootNav = () => {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarStyle: { backgroundColor: '#000', borderTopColor: 'rgba(255,255,255,0.08)' },
+          tabBarBackground: () => (
+            <BlurView intensity={80} tint="dark" style={{ flex: 1 }}>
+              <LinearGradient
+                colors={['rgba(139,92,246,0.15)', 'rgba(255,0,110,0.15)', 'rgba(0,212,255,0.15)']}
+                style={{ flex: 1 }}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </BlurView>
+          ),
+          tabBarStyle: { 
+            position: 'absolute',
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            elevation: 0,
+            height: 70,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
           tabBarActiveTintColor: '#FFFFFF',
-          tabBarInactiveTintColor: '#8A8F99',
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '600',
+          },
         }}
       >
-        <Tab.Screen name="Daily" component={DailyScreen}
-          options={{ tabBarIcon: ({color,size}) => <CheckCircle2 color={color} size={size}/> }} />
+        <Tab.Screen name="Daily" component={DailyScreenVibrant}
+          options={{ 
+            tabBarIcon: ({color,size,focused}) => (
+              <View style={{
+                padding: 8,
+                borderRadius: 16,
+                backgroundColor: focused ? 'rgba(255,0,110,0.2)' : 'transparent',
+              }}>
+                <CheckCircle2 color={focused ? '#FF006E' : color} size={size}/>
+              </View>
+            )
+          }} />
         <Tab.Screen name="Social" component={SocialScreen}
-          options={{ tabBarIcon: ({color,size}) => <House color={color} size={size}/> }} />
+          options={{ 
+            tabBarIcon: ({color,size,focused}) => (
+              <View style={{
+                padding: 8,
+                borderRadius: 16,
+                backgroundColor: focused ? 'rgba(139,92,246,0.2)' : 'transparent',
+              }}>
+                <House color={focused ? '#8B5CF6' : color} size={size}/>
+              </View>
+            )
+          }} />
         <Tab.Screen name="Progress" component={ProgressScreen}
-          options={{ tabBarIcon: ({color,size}) => <BarChart3 color={color} size={size}/> }} />
+          options={{ 
+            tabBarIcon: ({color,size,focused}) => (
+              <View style={{
+                padding: 8,
+                borderRadius: 16,
+                backgroundColor: focused ? 'rgba(0,212,255,0.2)' : 'transparent',
+              }}>
+                <BarChart3 color={focused ? '#00D4FF' : color} size={size}/>
+              </View>
+            )
+          }} />
         <Tab.Screen name="Profile" component={ProfileScreen}
-          options={{ tabBarIcon: ({color,size}) => <User2 color={color} size={size}/> }} />
+          options={{ 
+            tabBarIcon: ({color,size,focused}) => (
+              <View style={{
+                padding: 8,
+                borderRadius: 16,
+                backgroundColor: focused ? 'rgba(6,255,165,0.2)' : 'transparent',
+              }}>
+                <User2 color={focused ? '#06FFA5' : color} size={size}/>
+              </View>
+            )
+          }} />
       </Tab.Navigator>
     </NavigationContainer>
   );

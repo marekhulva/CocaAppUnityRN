@@ -8,6 +8,9 @@ import { PostCardEnhanced } from './components/PostCardEnhanced';
 import { Post } from '../../state/slices/socialSlice';
 import { PromptChips } from './components/PromptChips';
 import { ComposerRow } from './components/ComposerRow';
+import { AnimatedGradientBackground } from '../../ui/AnimatedGradientBackground';
+import { FloatingParticles } from '../../ui/FloatingParticles';
+import { VibrantTheme } from '../../design/vibrantTheme';
 
 export const SocialScreen = () => {
   const feedView = useStore(s=>s.feedView);
@@ -20,11 +23,20 @@ export const SocialScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <AnimatedGradientBackground
+        colors={VibrantTheme.gradients.social.colors}
+        speed={7000}
       >
+        <FloatingParticles
+          colors={['#FF006E', '#C77DFF', '#7209B7', '#560BAD']}
+          particleCount={12}
+        />
+        
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Segment tabs (non-sticky, scrolls with content) */}
         <View style={styles.tabContainer}>
           <Pressable
@@ -92,9 +104,10 @@ export const SocialScreen = () => {
             />
           ))}
         </View>
-      </ScrollView>
+        </ScrollView>
 
-      <ShareComposer />
+        <ShareComposer />
+      </AnimatedGradientBackground>
     </View>
   );
 };
@@ -119,30 +132,41 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
+    shadowColor: '#C77DFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   tabActive: {
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(199,125,255,0.5)',
+    backgroundColor: 'rgba(199,125,255,0.2)',
   },
   tabText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '700',
     fontSize: 15,
   },
   tabTextActive: {
     color: '#FFFFFF',
+    textShadowColor: '#C77DFF',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   shareCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,0,110,0.2)',
     overflow: 'hidden',
     marginBottom: 16,
+    shadowColor: '#FF006E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
   },
   shareCardContent: {
     padding: 16,
