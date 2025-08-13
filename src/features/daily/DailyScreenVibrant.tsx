@@ -12,9 +12,9 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
-import { AnimatedGradientBackground } from '../../ui/AnimatedGradientBackground';
-import { FloatingParticles } from '../../ui/FloatingParticles';
-import { VibrantTheme } from '../../design/vibrantTheme';
+import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
+import { GoldParticles } from '../../ui/GoldParticles';
+import { LuxuryTheme } from '../../design/luxuryTheme';
 import { ActionItem } from './ActionItem';
 import { DailyReviewModal } from './DailyReviewModalEnhanced';
 
@@ -77,13 +77,10 @@ export const DailyScreenVibrant = () => {
 
   return (
     <View style={styles.container}>
-      <AnimatedGradientBackground
-        colors={VibrantTheme.gradients.daily.colors}
-        speed={6000}
-      >
-        <FloatingParticles
-          colors={['#FF006E', '#FB5607', '#FFBE0B', '#FB8500']}
-          particleCount={15}
+      <LuxuryGradientBackground variant="gold">
+        <GoldParticles
+          variant="gold"
+          particleCount={12}
         />
 
         <ScrollView
@@ -92,9 +89,9 @@ export const DailyScreenVibrant = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Header with progress */}
-          <BlurView intensity={30} tint="light" style={styles.headerCard}>
+          <BlurView intensity={30} tint="dark" style={styles.headerCard}>
             <LinearGradient
-              colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']}
+              colors={['rgba(255,215,0,0.08)', 'rgba(192,192,192,0.03)']}
               style={StyleSheet.absoluteFillObject}
             />
             
@@ -109,7 +106,7 @@ export const DailyScreenVibrant = () => {
               <Animated.View style={[progressAnimatedStyle, glowAnimatedStyle, styles.progressContainer]}>
                 <View style={styles.progressRing}>
                   <LinearGradient
-                    colors={['#FF006E', '#FB5607', '#FFBE0B']}
+                    colors={['#FFD700', '#F7E7CE', '#FFD700']}
                     style={styles.progressGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -124,7 +121,7 @@ export const DailyScreenVibrant = () => {
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                   <LinearGradient
-                    colors={['rgba(255,0,110,0.2)', 'rgba(251,86,7,0.2)']}
+                    colors={['rgba(255,215,0,0.15)', 'rgba(255,215,0,0.05)']}
                     style={StyleSheet.absoluteFillObject}
                   />
                   <Text style={styles.statNumber}>{completed}</Text>
@@ -132,7 +129,7 @@ export const DailyScreenVibrant = () => {
                 </View>
                 <View style={styles.statCard}>
                   <LinearGradient
-                    colors={['rgba(251,86,7,0.2)', 'rgba(255,190,11,0.2)']}
+                    colors={['rgba(192,192,192,0.15)', 'rgba(192,192,192,0.05)']}
                     style={StyleSheet.absoluteFillObject}
                   />
                   <Text style={styles.statNumber}>{actions.length - completed}</Text>
@@ -145,7 +142,7 @@ export const DailyScreenVibrant = () => {
           {/* Actions Title */}
           <View style={styles.sectionHeader}>
             <LinearGradient
-              colors={['#FF006E', '#FB5607']}
+              colors={['#FFD700', '#C0C0C0']}
               style={styles.sectionGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -164,7 +161,7 @@ export const DailyScreenVibrant = () => {
                   goalTitle={action.goalTitle}
                   done={action.done}
                   streak={action.streak}
-                  goalColor={['#FF006E', '#FB5607', '#FFBE0B', '#06FFA5'][index % 4]}
+                  goalColor={['#FFD700', '#C0C0C0', '#F7E7CE', '#E5E4E2'][index % 4]}
                 />
               </View>
             ))}
@@ -173,7 +170,7 @@ export const DailyScreenVibrant = () => {
           {/* Review Button */}
           <Animated.View style={pulseAnimatedStyle}>
             <LinearGradient
-              colors={['#FF006E', '#8B5CF6']}
+              colors={['#FFD700', '#F7E7CE']}
               style={styles.reviewButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -187,9 +184,9 @@ export const DailyScreenVibrant = () => {
           </Animated.View>
 
           {/* Motivational Quote */}
-          <BlurView intensity={30} tint="light" style={styles.quoteCard}>
+          <BlurView intensity={30} tint="dark" style={styles.quoteCard}>
             <LinearGradient
-              colors={['rgba(255,0,110,0.1)', 'rgba(139,92,246,0.1)']}
+              colors={['rgba(255,215,0,0.05)', 'rgba(192,192,192,0.05)']}
               style={StyleSheet.absoluteFillObject}
             />
             <Text style={styles.quoteText}>
@@ -199,7 +196,7 @@ export const DailyScreenVibrant = () => {
         </ScrollView>
 
         <DailyReviewModal />
-      </AnimatedGradientBackground>
+      </LuxuryGradientBackground>
     </View>
   );
 };
@@ -231,13 +228,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 20,
-    textShadowColor: 'rgba(255,0,110,0.5)',
+    textShadowColor: 'rgba(255,215,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
   progressContainer: {
     marginVertical: 20,
-    shadowColor: '#FF006E',
+    shadowColor: '#FFD700',
   },
   progressRing: {
     width: 120,
@@ -313,7 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 2,
     marginTop: 24,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,

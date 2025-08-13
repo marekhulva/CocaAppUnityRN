@@ -16,11 +16,11 @@ export const PostCardEnhanced: React.FC<PostCardEnhancedProps> = ({ post, onReac
     Animated.spring(scale, { toValue: 1, useNativeDriver: true })
   ]).start();
 
-  // Dynamic gradient colors based on post type
+  // Dynamic gradient colors based on post type - luxury theme
   const getRingColors = () => {
-    if (post.type === 'checkin') return ['rgba(16,185,129,0.25)', 'rgba(6,182,212,0.25)'];
-    if (post.type === 'status') return ['rgba(168,85,247,0.25)', 'rgba(236,72,153,0.25)'];
-    return ['rgba(251,146,60,0.25)', 'rgba(250,204,21,0.25)'];
+    if (post.type === 'checkin') return ['rgba(255,215,0,0.2)', 'rgba(247,231,206,0.15)']; // Gold
+    if (post.type === 'status') return ['rgba(192,192,192,0.2)', 'rgba(229,228,226,0.15)']; // Silver
+    return ['rgba(255,215,0,0.15)', 'rgba(192,192,192,0.15)']; // Mixed gold/silver
   };
 
   const ringColors = getRingColors();
@@ -38,7 +38,7 @@ export const PostCardEnhanced: React.FC<PostCardEnhancedProps> = ({ post, onReac
       {/* Main card */}
       <BlurView intensity={20} tint="dark" style={styles.card}>
         <LinearGradient
-          colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.03)']}
+          colors={['rgba(255,215,0,0.03)', 'rgba(255,255,255,0.02)']}
           style={StyleSheet.absoluteFillObject}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(192,192,192,0.08)',
     padding: 16,
     overflow: 'hidden',
   },
@@ -186,9 +186,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,215,0,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -209,12 +209,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.15)',
+    backgroundColor: 'rgba(255,215,0,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.3)',
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   goalText: {
-    color: '#6EE7B7',
+    color: '#FFD700',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
   checkinBanner: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,215,0,0.1)',
+    backgroundColor: 'rgba(255,215,0,0.05)',
     padding: 12,
   },
   checkinContent: {
@@ -239,19 +239,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   streakText: {
-    color: 'rgba(251,191,36,0.9)',
+    color: '#FFD700',
     fontSize: 12,
   },
   goalBanner: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(251,146,60,0.3)',
-    backgroundColor: 'rgba(251,146,60,0.1)',
+    borderColor: 'rgba(255,215,0,0.3)',
+    backgroundColor: 'rgba(255,215,0,0.1)',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   goalAnnouncement: {
-    color: '#FED7AA',
+    color: '#F7E7CE',
     fontSize: 14,
   },
   goalEmphasis: {
@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(192,192,192,0.1)',
+    backgroundColor: 'rgba(192,192,192,0.05)',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -295,12 +295,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,215,0,0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,215,0,0.1)',
   },
   reactionButtonPressed: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,215,0,0.15)',
   },
   reactionText: {
     color: 'rgba(255,255,255,0.9)',
@@ -310,9 +310,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(192,192,192,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(192,192,192,0.1)',
   },
   commentText: {
     color: 'rgba(255,255,255,0.8)',

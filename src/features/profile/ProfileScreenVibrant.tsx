@@ -11,9 +11,9 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Settings, Award, Star, Activity, LogOut, ChevronRight } from 'lucide-react-native';
-import { AnimatedGradientBackground } from '../../ui/AnimatedGradientBackground';
-import { FloatingParticles } from '../../ui/FloatingParticles';
-import { VibrantTheme } from '../../design/vibrantTheme';
+import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
+import { GoldParticles } from '../../ui/GoldParticles';
+import { LuxuryTheme } from '../../design/luxuryTheme';
 import { useStore } from '../../state/rootStore';
 
 const { width } = Dimensions.get('window');
@@ -46,28 +46,21 @@ export const ProfileScreenVibrant = () => {
   }));
 
   const menuItems = [
-    { icon: Award, label: 'Achievements', color: '#06FFA5', count: '12' },
-    { icon: Activity, label: 'Activity Stats', color: '#00D4FF', count: '89%' },
-    { icon: Star, label: 'Milestones', color: '#FFB800', count: '5' },
-    { icon: Settings, label: 'Settings', color: '#8B5CF6' },
-    { icon: LogOut, label: 'Sign Out', color: '#FF4365' },
+    { icon: Award, label: 'Achievements', color: '#FFD700', count: '12' },
+    { icon: Activity, label: 'Activity Stats', color: '#C0C0C0', count: '89%' },
+    { icon: Star, label: 'Milestones', color: '#F7E7CE', count: '5' },
+    { icon: Settings, label: 'Settings', color: '#E5E4E2' },
+    { icon: LogOut, label: 'Sign Out', color: '#C0C0C0' },
   ];
 
   return (
     <View style={styles.container}>
-      <AnimatedGradientBackground
-        colors={[
-          ['#0D1B2A', '#1B263B', '#415A77'],
-          ['#1B263B', '#415A77', '#2D3E50'],
-          ['#415A77', '#0D1B2A', '#1B263B'],
-        ]}
-        speed={10000}
-      >
-        {/* Starfield effect */}
+      <LuxuryGradientBackground variant="mixed">
+        {/* Elegant particles */}
         <Animated.View style={[StyleSheet.absoluteFillObject, starfieldStyle]}>
-          <FloatingParticles
-            colors={['#FFFFFF', '#00D4FF', '#8B5CF6', '#06FFA5']}
-            particleCount={30}
+          <GoldParticles
+            variant="mixed"
+            particleCount={20}
           />
         </Animated.View>
 
@@ -77,17 +70,17 @@ export const ProfileScreenVibrant = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* Profile Header */}
-          <Animated.View style={[styles.profileCard, profileGlowStyle, { shadowColor: '#00D4FF' }]}>
+          <Animated.View style={[styles.profileCard, profileGlowStyle, { shadowColor: '#FFD700' }]}>
             <BlurView intensity={40} tint="dark" style={styles.profileCardInner}>
               <LinearGradient
-                colors={['rgba(0,212,255,0.1)', 'rgba(139,92,246,0.05)']}
+                colors={['rgba(255,215,0,0.1)', 'rgba(192,192,192,0.05)']}
                 style={StyleSheet.absoluteFillObject}
               />
               
               {/* Avatar with gradient ring */}
               <View style={styles.avatarContainer}>
                 <LinearGradient
-                  colors={['#00D4FF', '#8B5CF6', '#06FFA5']}
+                  colors={['#FFD700', '#C0C0C0', '#F7E7CE']}
                   style={styles.avatarRing}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -106,7 +99,7 @@ export const ProfileScreenVibrant = () => {
               <View style={styles.statsRow}>
                 <View style={styles.stat}>
                   <LinearGradient
-                    colors={['#00D4FF', '#00F5FF']}
+                    colors={['#FFD700', '#F7E7CE']}
                     style={styles.statGradient}
                   >
                     <Text style={styles.statNumber}>127</Text>
@@ -115,7 +108,7 @@ export const ProfileScreenVibrant = () => {
                 </View>
                 <View style={styles.stat}>
                   <LinearGradient
-                    colors={['#8B5CF6', '#C77DFF']}
+                    colors={['#C0C0C0', '#E5E4E2']}
                     style={styles.statGradient}
                   >
                     <Text style={styles.statNumber}>42</Text>
@@ -124,7 +117,7 @@ export const ProfileScreenVibrant = () => {
                 </View>
                 <View style={styles.stat}>
                   <LinearGradient
-                    colors={['#06FFA5', '#00F5A0']}
+                    colors={['#FFD700', '#F7E7CE']}
                     style={styles.statGradient}
                   >
                     <Text style={styles.statNumber}>89%</Text>
@@ -181,14 +174,14 @@ export const ProfileScreenVibrant = () => {
           {/* Level Card */}
           <BlurView intensity={30} tint="dark" style={styles.levelCard}>
             <LinearGradient
-              colors={['rgba(139,92,246,0.2)', 'rgba(0,212,255,0.1)']}
+              colors={['rgba(255,215,0,0.2)', 'rgba(192,192,192,0.1)']}
               style={StyleSheet.absoluteFillObject}
             />
             
             <Text style={styles.levelTitle}>Current Level</Text>
             <View style={styles.levelInfo}>
               <LinearGradient
-                colors={['#8B5CF6', '#00D4FF']}
+                colors={['#FFD700', '#C0C0C0']}
                 style={styles.levelBadge}
               >
                 <Text style={styles.levelNumber}>15</Text>
@@ -201,7 +194,7 @@ export const ProfileScreenVibrant = () => {
             
             <View style={styles.xpBar}>
               <LinearGradient
-                colors={['#8B5CF6', '#00D4FF']}
+                colors={['#FFD700', '#F7E7CE']}
                 style={[styles.xpFill, { width: '95%' }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -212,7 +205,7 @@ export const ProfileScreenVibrant = () => {
           {/* Quote */}
           <View style={styles.quoteCard}>
             <LinearGradient
-              colors={['rgba(0,212,255,0.05)', 'rgba(139,92,246,0.05)', 'rgba(6,255,165,0.05)']}
+              colors={['rgba(255,215,0,0.05)', 'rgba(192,192,192,0.05)', 'rgba(229,228,226,0.05)']}
               style={StyleSheet.absoluteFillObject}
             />
             <Text style={styles.quoteText}>
@@ -220,7 +213,7 @@ export const ProfileScreenVibrant = () => {
             </Text>
           </View>
         </ScrollView>
-      </AnimatedGradientBackground>
+      </LuxuryGradientBackground>
     </View>
   );
 };

@@ -40,20 +40,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#2c2c2c',
+    background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%)' as any,
     display: 'flex' as any,
     alignItems: 'center',
     justifyContent: 'center',
   },
   phoneFrame: {
-    width: 390,
-    height: 844,
+    width: 375,  // iPhone standard width
+    height: 667, // iPhone 8 height (or use 812 for iPhone X)
     backgroundColor: '#000',
-    borderRadius: 40,
+    borderRadius: 35,
     overflow: 'hidden',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.8)' as any,
-    border: '8px solid #333' as any,
+    boxShadow: '0 25px 80px rgba(255,215,0,0.2), 0 15px 40px rgba(192,192,192,0.15)' as any,
+    border: '6px solid #222' as any,
     position: 'relative' as any,
+    transform: 'scale(0.85)' as any, // Scale down to fit better on screen
   },
   mobileContainer: {
     flex: 1,

@@ -8,7 +8,7 @@ import { CheckCircle2, House, BarChart3, User2 } from 'lucide-react-native';
 import { DailyScreenVibrant } from './src/features/daily/DailyScreenVibrant';
 import { SocialScreen } from './src/features/social/SocialScreen';
 import { ProgressScreenVibrant } from './src/features/progress/ProgressScreenVibrant';
-import { ProfileScreenVibrant } from './src/features/profile/ProfileScreenVibrant';
+import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,7 +26,7 @@ export const RootNav = () => {
           tabBarBackground: () => (
             <BlurView intensity={80} tint="dark" style={{ flex: 1 }}>
               <LinearGradient
-                colors={['rgba(139,92,246,0.15)', 'rgba(255,0,110,0.15)', 'rgba(0,212,255,0.15)']}
+                colors={['rgba(255,215,0,0.1)', 'rgba(192,192,192,0.05)', 'rgba(255,215,0,0.1)']}
                 style={{ flex: 1 }}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -56,9 +56,9 @@ export const RootNav = () => {
               <View style={{
                 padding: 8,
                 borderRadius: 16,
-                backgroundColor: focused ? 'rgba(255,0,110,0.2)' : 'transparent',
+                backgroundColor: focused ? 'rgba(255,215,0,0.15)' : 'transparent',
               }}>
-                <CheckCircle2 color={focused ? '#FF006E' : color} size={size}/>
+                <CheckCircle2 color={focused ? '#FFD700' : color} size={size}/>
               </View>
             )
           }} />
@@ -68,9 +68,9 @@ export const RootNav = () => {
               <View style={{
                 padding: 8,
                 borderRadius: 16,
-                backgroundColor: focused ? 'rgba(139,92,246,0.2)' : 'transparent',
+                backgroundColor: focused ? 'rgba(192,192,192,0.15)' : 'transparent',
               }}>
-                <House color={focused ? '#8B5CF6' : color} size={size}/>
+                <House color={focused ? '#C0C0C0' : color} size={size}/>
               </View>
             )
           }} />
@@ -80,21 +80,21 @@ export const RootNav = () => {
               <View style={{
                 padding: 8,
                 borderRadius: 16,
-                backgroundColor: focused ? 'rgba(0,212,255,0.2)' : 'transparent',
+                backgroundColor: focused ? 'rgba(229,228,226,0.15)' : 'transparent',
               }}>
-                <BarChart3 color={focused ? '#00D4FF' : color} size={size}/>
+                <BarChart3 color={focused ? '#E5E4E2' : color} size={size}/>
               </View>
             )
           }} />
-        <Tab.Screen name="Profile" component={ProfileScreenVibrant}
+        <Tab.Screen name="Profile" component={ProfileEnhanced}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
               <View style={{
                 padding: 8,
                 borderRadius: 16,
-                backgroundColor: focused ? 'rgba(6,255,165,0.2)' : 'transparent',
+                backgroundColor: focused ? 'rgba(255,215,0,0.15)' : 'transparent',
               }}>
-                <User2 color={focused ? '#06FFA5' : color} size={size}/>
+                <User2 color={focused ? '#FFD700' : color} size={size}/>
               </View>
             )
           }} />

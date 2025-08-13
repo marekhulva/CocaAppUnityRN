@@ -12,9 +12,9 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { TrendingUp, Target, Trophy, Zap } from 'lucide-react-native';
-import { AnimatedGradientBackground } from '../../ui/AnimatedGradientBackground';
-import { FloatingParticles } from '../../ui/FloatingParticles';
-import { VibrantTheme } from '../../design/vibrantTheme';
+import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
+import { GoldParticles } from '../../ui/GoldParticles';
+import { LuxuryTheme } from '../../design/luxuryTheme';
 import { useStore } from '../../state/rootStore';
 
 const { width } = Dimensions.get('window');
@@ -54,13 +54,10 @@ export const ProgressScreenVibrant = () => {
 
   return (
     <View style={styles.container}>
-      <AnimatedGradientBackground
-        colors={VibrantTheme.gradients.progress.colors}
-        speed={8000}
-      >
-        <FloatingParticles
-          colors={['#00F5FF', '#00D4FF', '#8B5CF6', '#06FFA5']}
-          particleCount={18}
+      <LuxuryGradientBackground variant="silver">
+        <GoldParticles
+          variant="silver"
+          particleCount={15}
         />
 
         <ScrollView
@@ -71,44 +68,44 @@ export const ProgressScreenVibrant = () => {
           {/* Header Stats */}
           <BlurView intensity={30} tint="light" style={styles.headerCard}>
             <LinearGradient
-              colors={['rgba(0,245,255,0.15)', 'rgba(0,212,255,0.05)']}
+              colors={['rgba(192,192,192,0.15)', 'rgba(255,215,0,0.05)']}
               style={StyleSheet.absoluteFillObject}
             />
             
             <Text style={styles.headerTitle}>Your Journey</Text>
             
             <View style={styles.statsGrid}>
-              <Animated.View style={[styles.statCard, glowStyle, { shadowColor: '#00F5FF' }]}>
+              <Animated.View style={[styles.statCard, glowStyle, { shadowColor: '#FFD700' }]}>
                 <LinearGradient
-                  colors={['rgba(0,245,255,0.2)', 'rgba(0,212,255,0.1)']}
+                  colors={['rgba(255,215,0,0.2)', 'rgba(192,192,192,0.1)']}
                   style={StyleSheet.absoluteFillObject}
                 />
                 <View style={styles.statContent}>
-                  <TrendingUp color="#00F5FF" size={24} />
+                  <TrendingUp color="#FFD700" size={24} />
                   <Text style={styles.statNumber}>87%</Text>
                   <Text style={styles.statLabel}>This Week</Text>
                 </View>
               </Animated.View>
 
-              <Animated.View style={[styles.statCard, glowStyle, { shadowColor: '#8B5CF6' }]}>
+              <Animated.View style={[styles.statCard, glowStyle, { shadowColor: '#C0C0C0' }]}>
                 <LinearGradient
-                  colors={['rgba(139,92,246,0.2)', 'rgba(6,255,165,0.1)']}
+                  colors={['rgba(192,192,192,0.2)', 'rgba(255,215,0,0.1)']}
                   style={StyleSheet.absoluteFillObject}
                 />
                 <View style={styles.statContent}>
-                  <Zap color="#8B5CF6" size={24} />
+                  <Zap color="#C0C0C0" size={24} />
                   <Text style={styles.statNumber}>23</Text>
                   <Text style={styles.statLabel}>Day Streak</Text>
                 </View>
               </Animated.View>
 
-              <Animated.View style={[styles.statCard, glowStyle, { shadowColor: '#06FFA5' }]}>
+              <Animated.View style={[styles.statCard, glowStyle, { shadowColor: '#FFD700' }]}>
                 <LinearGradient
-                  colors={['rgba(6,255,165,0.2)', 'rgba(0,245,255,0.1)']}
+                  colors={['rgba(255,215,0,0.2)', 'rgba(229,228,226,0.1)']}
                   style={StyleSheet.absoluteFillObject}
                 />
                 <View style={styles.statContent}>
-                  <Trophy color="#06FFA5" size={24} />
+                  <Trophy color="#FFD700" size={24} />
                   <Text style={styles.statNumber}>5</Text>
                   <Text style={styles.statLabel}>Goals Hit</Text>
                 </View>
@@ -119,7 +116,7 @@ export const ProgressScreenVibrant = () => {
           {/* Progress Chart */}
           <BlurView intensity={25} tint="light" style={styles.chartCard}>
             <LinearGradient
-              colors={['rgba(139,92,246,0.1)', 'rgba(0,212,255,0.1)']}
+              colors={['rgba(255,215,0,0.1)', 'rgba(192,192,192,0.1)']}
               style={StyleSheet.absoluteFillObject}
             />
             <Text style={styles.chartTitle}>Weekly Progress</Text>
@@ -135,8 +132,8 @@ export const ProgressScreenVibrant = () => {
                       <LinearGradient
                         colors={
                           isToday 
-                            ? ['#00F5FF', '#06FFA5']
-                            : ['rgba(0,245,255,0.3)', 'rgba(6,255,165,0.3)']
+                            ? ['#FFD700', '#F7E7CE']
+                            : ['rgba(255,215,0,0.3)', 'rgba(192,192,192,0.3)']
                         }
                         style={[
                           styles.bar,
@@ -204,9 +201,9 @@ export const ProgressScreenVibrant = () => {
           </View>
 
           {/* Motivational Quote */}
-          <Animated.View style={[styles.quoteCard, glowStyle, { shadowColor: '#8B5CF6' }]}>
+          <Animated.View style={[styles.quoteCard, glowStyle, { shadowColor: '#FFD700' }]}>
             <LinearGradient
-              colors={['rgba(0,245,255,0.1)', 'rgba(139,92,246,0.1)', 'rgba(6,255,165,0.1)']}
+              colors={['rgba(255,215,0,0.1)', 'rgba(192,192,192,0.1)', 'rgba(229,228,226,0.1)']}
               style={StyleSheet.absoluteFillObject}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -216,7 +213,7 @@ export const ProgressScreenVibrant = () => {
             </Text>
           </Animated.View>
         </ScrollView>
-      </AnimatedGradientBackground>
+      </LuxuryGradientBackground>
     </View>
   );
 };
@@ -238,14 +235,14 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,245,255,0.2)',
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '900',
     color: '#FFFFFF',
     marginBottom: 20,
-    textShadowColor: 'rgba(0,245,255,0.5)',
+    textShadowColor: 'rgba(255,215,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
