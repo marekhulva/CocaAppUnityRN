@@ -1,5 +1,5 @@
 export const colors = {
-  // Base
+  // Base - Pure black
   black: '#000000',
   white: '#FFFFFF',
 
@@ -19,10 +19,23 @@ export const colors = {
   shine: 'rgba(255,255,255,0.86)',
   shineDim: 'rgba(255,255,255,0.22)',
 
+  // Neon glows for action types
+  neonBlue: '#00D4FF',
+  neonGreen: '#00FF88',
+  neonPurple: '#B366FF',
+  neonPink: '#FF006E',
+  neonYellow: '#FFD600',
+  
+  // Subtle neon glows (for borders)
+  neonBlueDim: 'rgba(0,212,255,0.3)',
+  neonGreenDim: 'rgba(0,255,136,0.3)',
+  neonPurpleDim: 'rgba(179,102,255,0.3)',
+  neonPinkDim: 'rgba(255,0,110,0.3)',
+
   // Status
-  green: '#10B981',
-  yellow: '#F59E0B',
-  red: '#EF4444',
+  green: '#00FF88',
+  yellow: '#FFD600',
+  red: '#FF006E',
 };
 
 export const radii = {

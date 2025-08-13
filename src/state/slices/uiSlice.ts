@@ -1,13 +1,35 @@
 import { StateCreator } from 'zustand';
 
+export type Visibility = 'circle'|'follow';
+export type ShareDraft = {
+  type: 'checkin'|'status'|'photo'|'audio';
+  visibility: Visibility;
+  // check-in specific
+  actionTitle?: string; 
+  goal?: string; 
+  streak?: number; 
+  goalColor?: string;
+  // content
+  text?: string;
+  photoUri?: string;
+  audioUri?: string;
+  promptSeed?: string;
+};
+
 export type UiSlice = {
-  feedView: 'circle'|'follow';
-  setFeedView: (v:'circle'|'follow')=>void;
+  feedView: Visibility;
+  setFeedView: (v:Visibility)=>void;
 
   // Daily review modal visibility
   isDailyReviewOpen: boolean;
   openDailyReview: () => void;
   closeDailyReview: () => void;
+  
+  // NEW: share composer
+  shareOpen: boolean;
+  shareDraft?: ShareDraft;
+  openShare: (draft: ShareDraft)=>void;
+  closeShare: ()=>void;
 };
 
 export const createUiSlice: StateCreator<UiSlice> = (set) => ({
@@ -17,4 +39,9 @@ export const createUiSlice: StateCreator<UiSlice> = (set) => ({
   isDailyReviewOpen: false,
   openDailyReview: () => set({ isDailyReviewOpen: true }),
   closeDailyReview: () => set({ isDailyReviewOpen: false }),
+  
+  shareOpen: false,
+  shareDraft: undefined,
+  openShare: (draft)=>set({ shareOpen: true, shareDraft: draft }),
+  closeShare: ()=>set({ shareOpen: false, shareDraft: undefined }),
 });

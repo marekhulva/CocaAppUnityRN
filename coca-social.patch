@@ -1,0 +1,531 @@
+diff --git a/src/state/slices/uiSlice.ts b/src/state/slices/uiSlice.ts
+index 1111111..2222222 100644
+--- a/src/state/slices/uiSlice.ts
++++ b/src/state/slices/uiSlice.ts
+@@ -1,10 +1,36 @@
+ import { StateCreator } from 'zustand';
+-export type UiSlice = { feedView: 'circle'|'follow'; setFeedView: (v:'circle'|'follow')=>void; };
+-export const createUiSlice: StateCreator<UiSlice> = (set) => ({
+-  feedView: 'circle',
+-  setFeedView: (v)=>set({ feedView:v }),
+-});
++export type Visibility = 'circle'|'follow';
++export type ShareDraft = {
++  type: 'checkin'|'status'|'photo'|'audio';
++  visibility: Visibility;
++  // check-in specific
++  actionTitle?: string; goal?: string; streak?: number; goalColor?: string;
++  // content
++  text?: string;
++  photoUri?: string;
++  audioUri?: string;
++  promptSeed?: string;
++};
++
++export type UiSlice = {
++  feedView: Visibility;
++  setFeedView: (v:Visibility)=>void;
++  isDailyReviewOpen: boolean; openDailyReview: ()=>void; closeDailyReview: ()=>void; // existing
++  // NEW: share composer
++  shareOpen: boolean;
++  shareDraft?: ShareDraft;
++  openShare: (draft: ShareDraft)=>void;
++  closeShare: ()=>void;
++};
++
++export const createUiSlice: StateCreator<UiSlice> = (set) => ({
++  feedView: 'circle',
++  setFeedView: (v)=>set({ feedView:v }),
++  isDailyReviewOpen: false,
++  openDailyReview: () => set({ isDailyReviewOpen: true }),
++  closeDailyReview: () => set({ isDailyReviewOpen: false }),
++  shareOpen: false,
++  shareDraft: undefined,
++  openShare: (draft)=>set({ shareOpen: true, shareDraft: draft }),
++  closeShare: ()=>set({ shareOpen: false, shareDraft: undefined }),
++});
+diff --git a/src/state/slices/socialSlice.ts b/src/state/slices/socialSlice.ts
+index 3333333..4444444 100644
+--- a/src/state/slices/socialSlice.ts
++++ b/src/state/slices/socialSlice.ts
+@@ -1,24 +1,54 @@
+ import { StateCreator } from 'zustand';
+-export type Post = { id:string; user:string; type:'checkin'|'goal'|'prompt'|'free'; content:string; reactions: Record<string, number>; time:string; };
+-export type SocialSlice = {
+-  circleFeed: Post[]; followFeed: Post[];
+-  react: (id:string, emoji:string, which:'circle'|'follow')=>void;
+-  addPost: (p:Post, which:'circle'|'follow')=>void;
+-};
+-export const createSocialSlice: StateCreator<SocialSlice> = (set) => ({
+-  circleFeed: [{ id:'p1', user:'Sarah', type:'checkin', content:'Crushed HIIT 💪', reactions:{'👏':5,'🔥':3}, time:'2h' }],
+-  followFeed: [{ id:'p2', user:'Jordan', type:'prompt', content:'Hardest part was skipping donuts', reactions:{'👏':2}, time:'1h' }],
+-  react: (id, emoji, which) => set((s)=>({
+-    [which==='circle'?'circleFeed':'followFeed']: (which==='circle'?s.circleFeed:s.followFeed).map(p => p.id===id ? ({...p, reactions:{...p.reactions, [emoji]:(p.reactions[emoji]||0)+1}}) : p)
+-  })),
+-  addPost: (p, which) => set((s)=>({ [which==='circle'?'circleFeed':'followFeed']: [p, ...(which==='circle'?s.circleFeed:s.followFeed)] } as any)),
+-});
++export type PostType = 'checkin'|'status'|'photo'|'audio'|'goal';
++export type Visibility = 'circle'|'follow';
++export type Post = {
++  id: string;
++  user: string;
++  avatar?: string;              // emoji or URL
++  type: PostType;
++  visibility: Visibility;
++  content: string;              // status/insight or caption
++  time: string;                 // "2h"
++  reactions: Record<string, number>;
++  comments?: number;
++  // media
++  photoUri?: string;
++  audioUri?: string;
++  // check-in metadata
++  actionTitle?: string;
++  goal?: string;
++  streak?: number;
++  goalColor?: string;           // hex used for chip/glow
++};
++
++export type SocialSlice = {
++  circleFeed: Post[]; 
++  followFeed: Post[];
++  react: (id:string, emoji:string, which:Visibility)=>void;
++  addPost: (p:Post)=>void; // routes by p.visibility
++};
++
++export const createSocialSlice: StateCreator<SocialSlice> = (set) => ({
++  circleFeed: [{
++    id:'p1', user:'Sarah', avatar:'👩‍💼', visibility:'circle',
++    type:'checkin', content:'Crushed HIIT 💪', actionTitle:'Morning workout', goal:'Lose 10 lbs', streak:8, goalColor:'#10B981',
++    reactions:{'👏':5,'💪':3,'🔥':4}, time:'2h'
++  }],
++  followFeed: [{
++    id:'p2', user:'Jordan', avatar:'🧑‍🏫', visibility:'follow',
++    type:'status', content:'Hardest thing about today was saying no to sweets 😅', reactions:{'👏':2}, time:'1h'
++  }],
++  react: (id, emoji, which) => set((s)=>({
++    [which==='circle'?'circleFeed':'followFeed']: (which==='circle'?s.circleFeed:s.followFeed).map(p => 
++      p.id===id ? ({...p, reactions:{...p.reactions, [emoji]:(p.reactions[emoji]||0)+1}}) : p)
++  })),
++  addPost: (p) => set((s)=> {
++    if (p.visibility==='circle') return { circleFeed:[p, ...s.circleFeed] };
++    return { followFeed:[p, ...s.followFeed] };
++  }),
++});
+diff --git a/src/features/social/ShareComposer.tsx b/src/features/social/ShareComposer.tsx
+new file mode 100644
+index 0000000..5555555
+--- /dev/null
++++ b/src/features/social/ShareComposer.tsx
+@@ -0,0 +1,256 @@
++import React from 'react';
++import { Modal, View, Text, StyleSheet, Pressable, TextInput, Image, Platform } from 'react-native';
++import * as ImagePicker from 'expo-image-picker';
++import { Audio } from 'expo-av';
++import { GlassSurface } from '../../ui/GlassSurface';
++import { useStore } from '../../state/rootStore';
++import { Visibility } from '../../state/slices/uiSlice';
++
++export const ShareComposer: React.FC = () => {
++  const shareOpen = useStore(s=>s.shareOpen);
++  const draft = useStore(s=>s.shareDraft);
++  const close = useStore(s=>s.closeShare);
++  const addPost = useStore(s=>s.addPost);
++  const setFeedView = useStore(s=>s.setFeedView);
++
++  const [text, setText] = React.useState(draft?.text || '');
++  const [photoUri, setPhotoUri] = React.useState<string|undefined>(draft?.photoUri);
++  const [recording, setRecording] = React.useState<Audio.Recording | null>(null);
++  const [audioUri, setAudioUri] = React.useState<string|undefined>(draft?.audioUri);
++  const [visibility, setVisibility] = React.useState<Visibility>(draft?.visibility || 'circle');
++  const [busy, setBusy] = React.useState(false);
++
++  React.useEffect(()=> {
++    if (shareOpen) {
++      setText(draft?.text || (draft?.promptSeed ? draft?.promptSeed + ' ' : ''));
++      setPhotoUri(draft?.photoUri);
++      setAudioUri(draft?.audioUri);
++      setVisibility(draft?.visibility || 'circle');
++    }
++  }, [shareOpen]);
++
++  const pickImage = async () => {
++    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, base64:false, allowsEditing:true, quality:0.9 });
++    if (!res.canceled && res.assets?.[0]?.uri) setPhotoUri(res.assets[0].uri);
++  };
++
++  const startRecording = async () => {
++    setBusy(true);
++    try {
++      await Audio.requestPermissionsAsync();
++      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
++      const rec = new Audio.Recording();
++      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
++      await rec.startAsync();
++      setRecording(rec);
++    } catch (e) { console.warn(e); }
++    setBusy(false);
++  };
++  const stopRecording = async () => {
++    if (!recording) return;
++    setBusy(true);
++    try {
++      await recording.stopAndUnloadAsync();
++      const uri = recording.getURI() || undefined;
++      setAudioUri(uri);
++    } catch(e) { console.warn(e); }
++    setRecording(null);
++    setBusy(false);
++  };
++
++  const publish = async () => {
++    if (!draft) return;
++    const id = Date.now().toString();
++    const base = {
++      id,
++      user: 'You',
++      avatar: '👤',
++      time: 'now',
++      reactions: {} as Record<string, number>,
++      visibility,
++    };
++    const type = draft.type;
++    const content = text?.trim() || (type==='checkin' ? `Checked in: ${draft.actionTitle}` : '');
++    const post = {
++      ...base,
++      type,
++      content,
++      photoUri: type==='photo' || photoUri ? photoUri : undefined,
++      audioUri: type==='audio' || audioUri ? audioUri : undefined,
++      actionTitle: draft.actionTitle,
++      goal: draft.goal,
++      streak: draft.streak,
++      goalColor: draft.goalColor,
++    };
++    addPost(post as any);
++    // show in selected tab
++    setFeedView(visibility);
++    close();
++  };
++
++  return (
++    <Modal visible={shareOpen} transparent animationType="fade" onRequestClose={close}>
++      <View style={styles.overlay}>
++        <GlassSurface style={styles.sheet}>
++          <Text style={styles.title}>Share</Text>
++          {/* Visibility toggle */}
++          <View style={styles.row}>
++            {(['circle','follow'] as Visibility[]).map(v => (
++              <Pressable key={v} onPress={()=>setVisibility(v)} style={[styles.visPill, visibility===v && styles.visActive]}>
++                <Text style={[styles.visText, visibility===v && styles.visActiveText]}>{v==='circle'?'Circle':'Follow'}</Text>
++              </Pressable>
++            ))}
++          </View>
++
++          {/* Context (for check-ins) */}
++          {draft?.type==='checkin' && (
++            <View style={[styles.context, draft.goalColor ? { borderColor: draft.goalColor+'33' } : null]}>
++              <Text style={styles.contextTitle}>{draft.actionTitle}</Text>
++              {!!draft.goal && <Text style={styles.contextMeta}>{draft.goal} • 🔥 {draft.streak ?? 0}</Text>}
++            </View>
++          )}
++
++          {/* Text */}
++          <TextInput
++            value={text}
++            onChangeText={setText}
++            placeholder={draft?.promptSeed ?? "Add a note..."}
++            placeholderTextColor="rgba(255,255,255,0.5)"
++            multiline
++            style={styles.input}
++          />
++
++          {/* Photo preview */}
++          {photoUri && <Image source={{ uri: photoUri }} style={styles.photo} />}
++          {/* Audio hint */}
++          {audioUri && <Text style={styles.audioHint}>🎙️ Audio attached</Text>}
++
++          {/* Actions */}
++          <View style={styles.toolsRow}>
++            <Pressable onPress={pickImage} style={styles.toolBtn}><Text style={styles.toolText}>🖼️ Photo</Text></Pressable>
++            {recording 
++              ? <Pressable disabled={busy} onPress={stopRecording} style={styles.toolBtn}><Text style={styles.toolText}>⏹ Stop</Text></Pressable>
++              : <Pressable disabled={busy} onPress={startRecording} style={styles.toolBtn}><Text style={styles.toolText}>🎙️ Record</Text></Pressable>}
++          </View>
++
++          <View style={styles.publishRow}>
++            <Pressable onPress={close} style={styles.secondary}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
++            <Pressable onPress={publish} style={styles.primary}><Text style={styles.primaryText}>Publish</Text></Pressable>
++          </View>
++        </GlassSurface>
++        <Pressable onPress={close} style={{height:40}} />
++      </View>
++    </Modal>
++  );
++};
++
++const styles = StyleSheet.create({
++  overlay:{ flex:1, backgroundColor:'rgba(0,0,0,0.9)', justifyContent:'center', padding:16 },
++  sheet:{ padding:16 },
++  title:{ color:'#FFF', fontWeight:'800', fontSize:18, marginBottom:8 },
++  row:{ flexDirection:'row', gap:8, marginBottom:12 },
++  visPill:{ flex:1, alignItems:'center', paddingVertical:10, borderRadius:999, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.04)' },
++  visActive:{ borderColor:'#FFFFFF', backgroundColor:'rgba(255,255,255,0.12)' },
++  visText:{ color:'rgba(255,255,255,0.8)', fontWeight:'700' },
++  visActiveText:{ color:'#000', backgroundColor:'#FFF', paddingHorizontal:8, borderRadius:999 },
++  context:{ borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.04)', borderRadius:16, padding:12, marginBottom:12 },
++  contextTitle:{ color:'#FFF', fontWeight:'700' },
++  contextMeta:{ color:'rgba(255,255,255,0.7)', marginTop:4 },
++  input:{ minHeight:100, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', borderRadius:16, padding:12, color:'#FFF', backgroundColor:'rgba(255,255,255,0.05)', marginBottom:12 },
++  photo:{ width:'100%', height:220, borderRadius:16, marginBottom:10 },
++  audioHint:{ color:'#ECEDEF', marginBottom:8 },
++  toolsRow:{ flexDirection:'row', gap:8, marginBottom:10 },
++  toolBtn:{ flex:1, alignItems:'center', paddingVertical:12, borderRadius:14, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.06)' },
++  toolText:{ color:'#FFF', fontWeight:'700' },
++  publishRow:{ flexDirection:'row', gap:10, marginTop:4 },
++  primary:{ flex:1, alignItems:'center', paddingVertical:12, borderRadius:14, backgroundColor:'#FFF' },
++  primaryText:{ color:'#000', fontWeight:'800' },
++  secondary:{ flex:1, alignItems:'center', paddingVertical:12, borderRadius:14, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.04)' },
++  secondaryText:{ color:'#FFF', fontWeight:'800' },
++});
+diff --git a/src/features/social/PostCard.tsx b/src/features/social/PostCard.tsx
+index 6666666..7777777 100644
+--- a/src/features/social/PostCard.tsx
++++ b/src/features/social/PostCard.tsx
+@@ -1,44 +1,126 @@
+ import React from 'react';
+-import { View, Text, StyleSheet, Pressable } from 'react-native';
++import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+ import { GlassSurface } from '../../ui/GlassSurface';
+ import { useStore } from '../../state/rootStore';
++import { Post } from '../../state/slices/socialSlice';
+ 
+-export const PostCard: React.FC<{ id:string; user:string; content:string; reactions:Record<string,number>; when:string; which:'circle'|'follow'}> = ({id,user,content,reactions,when,which})=>{
+-  const react = useStore(s=>s.react);
+-  return (
+-    <GlassSurface style={styles.card}>
+-      <Text style={styles.user}>{user} • <Text style={styles.when}>{when}</Text></Text>
+-      <Text style={styles.content}>{content}</Text>
+-      <View style={styles.row}>
+-        {['👏','💪','🔥'].map(e=>(
+-          <Pressable key={e} onPress={()=>react(id,e,which)} style={styles.pill}>
+-            <Text style={styles.pillText}>{e} {(reactions[e]||0)}</Text>
+-          </Pressable>
+-        ))}
+-      </View>
+-    </GlassSurface>
+-  );
+-};
++export const PostCard: React.FC<{ post: Post; which:'circle'|'follow'}> = ({ post, which })=>{
++  const react = useStore(s=>s.react);
++  // style by type
++  const borderTint = post.type==='checkin' ? (post.goalColor || 'rgba(16,185,129,0.4)') 
++                    : post.type==='photo' ? 'rgba(255,255,255,0.25)'
++                    : post.type==='audio' ? 'rgba(180,180,255,0.35)'
++                    : 'rgba(255,255,255,0.12)';
++  return (
++    <GlassSurface style={[styles.card, { borderColor: borderTint }]}>
++      <View style={styles.header}>
++        <View style={styles.avatar}>
++          <Text style={{fontSize:16}}>{post.avatar ?? '👤'}</Text>
++        </View>
++        <View style={{flex:1}}>
++          <Pressable><Text style={styles.user}>{post.user}</Text></Pressable>
++          <Text style={styles.when}>{post.time}</Text>
++        </View>
++        {post.type==='checkin' && !!post.goal && (
++          <View style={[styles.goalChip, { borderColor: (post.goalColor || '#10B981')+'55' }]}>
++            <Text style={[styles.goalChipText, { color: post.goalColor || '#10B981' }]}>{post.goal}</Text>
++          </View>
++        )}
++      </View>
++
++      {/* Content */}
++      {post.type==='checkin' && (
++        <View style={styles.block}>
++          <Text style={styles.checkTitle}>✅ {post.actionTitle}</Text>
++          {!!post.streak && <Text style={styles.meta}>🔥 {post.streak} day streak</Text>}
++        </View>
++      )}
++      {!!post.content && <Text style={styles.content}>{post.content}</Text>}
++      {!!post.photoUri && <Image source={{uri: post.photoUri}} style={styles.photo} />}
++      {post.type==='audio' && post.audioUri && (
++        <View style={styles.audioRow}>
++          <Text style={styles.audioBadge}>🎙️ Voice note</Text>
++        </View>
++      )}
++
++      <View style={styles.row}>
++        {['👏','💪','🔥'].map(e=>(
++          <Pressable key={e} onPress={()=>react(post.id,e,which)} style={styles.pill}>
++            <Text style={styles.pillText}>{e} {(post.reactions[e]||0)}</Text>
++          </Pressable>
++        ))}
++        <Pressable style={[styles.pill, {marginLeft:'auto'}]}>
++          <Text style={styles.pillText}>💬 Comment</Text>
++        </Pressable>
++      </View>
++    </GlassSurface>
++  );
++};
+ const styles=StyleSheet.create({
+-  card:{ padding:16, marginBottom:12 },
+-  user:{ color:'#FFF', fontWeight:'700' },
+-  when:{ color:'rgba(255,255,255,0.6)' },
+-  content:{ color:'#ECEDEF', marginTop:8, marginBottom:12 },
++  card:{ padding:16, marginBottom:12, borderWidth:1 },
++  header:{ flexDirection:'row', alignItems:'center', marginBottom:8, gap:10 },
++  avatar:{ width:36, height:36, borderRadius:18, backgroundColor:'rgba(255,255,255,0.08)', alignItems:'center', justifyContent:'center' },
++  user:{ color:'#FFF', fontWeight:'700' },
++  when:{ color:'rgba(255,255,255,0.6)', fontSize:12 },
++  goalChip:{ borderWidth:1, borderRadius:999, paddingVertical:6, paddingHorizontal:10 },
++  goalChipText:{ fontWeight:'700' },
++  block:{ borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.04)', borderRadius:12, padding:10, marginBottom:8 },
++  checkTitle:{ color:'#FFF', fontWeight:'700' },
++  meta:{ color:'rgba(255,255,255,0.7)', marginTop:4 },
++  content:{ color:'#ECEDEF', marginTop:6, marginBottom:10 },
++  photo:{ width:'100%', height:220, borderRadius:12, marginTop:4 },
++  audioRow:{ marginTop:6, marginBottom:6 },
++  audioBadge:{ color:'#DADBE0' },
+   row:{ flexDirection:'row', gap:8 },
+   pill:{ borderColor:'rgba(255,255,255,0.08)', borderWidth:1, paddingVertical:6, paddingHorizontal:12, borderRadius:999 },
+   pillText:{ color:'#FFFFFF' }
+ });
+diff --git a/src/features/social/SocialScreen.tsx b/src/features/social/SocialScreen.tsx
+index 8888888..9999999 100644
+--- a/src/features/social/SocialScreen.tsx
++++ b/src/features/social/SocialScreen.tsx
+@@ -1,37 +1,137 @@
+ import React from 'react';
+-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
++import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+ import { useStore } from '../../state/rootStore';
++import { ShareComposer } from './ShareComposer';
++import { Post } from '../../state/slices/socialSlice';
+ 
+ export const SocialScreen = () => {
+-  const feedView = useStore(s=>s.feedView);
+-  const setFeedView = useStore(s=>s.setFeedView);
+-  const circle = useStore(s=>s.circleFeed);
+-  const follow = useStore(s=>s.followFeed);
+-  const posts = feedView==='circle'?circle:follow;
++  const feedView = useStore(s=>s.feedView);
++  const setFeedView = useStore(s=>s.setFeedView);
++  const circle = useStore(s=>s.circleFeed);
++  const follow = useStore(s=>s.followFeed);
++  const posts: Post[] = feedView==='circle'?circle:follow;
++  const openShare = useStore(s=>s.openShare);
+ 
+   return (
+-    <ScrollView style={{ flex:1, backgroundColor:'#000' }} contentContainerStyle={{ padding:16, paddingBottom:100 }}>
+-      <View style={styles.switch}>
+-        <Pressable onPress={()=>setFeedView('circle')} style={[styles.tab, feedView==='circle'&&styles.active]}><Text style={styles.tabText}>Circle</Text></Pressable>
+-        <Pressable onPress={()=>setFeedView('follow')} style={[styles.tab, feedView==='follow'&&styles.active]}><Text style={styles.tabText}>Follow</Text></Pressable>
+-      </View>
+-      {posts.map(p => <Post key={p.id} id={p.id} user={p.user} content={p.content} reactions={p.reactions} when={p.time} which={feedView}/>)}
+-    </ScrollView>
++    <>
++      <ScrollView style={{ flex:1, backgroundColor:'#000' }} contentContainerStyle={{ padding:16, paddingBottom:120 }}>
++        {/* Tabs */}
++        <View style={styles.switch}>
++          <Pressable onPress={()=>setFeedView('circle')} style={[styles.tab, feedView==='circle'&&styles.active]}><Text style={styles.tabText}>Circle</Text></Pressable>
++          <Pressable onPress={()=>setFeedView('follow')} style={[styles.tab, feedView==='follow'&&styles.active]}><Text style={styles.tabText}>Follow</Text></Pressable>
++        </View>
++
++        {/* Always-on prompt with suggestions */}
++        <View style={styles.promptCard}>
++          <Text style={styles.promptTitle}>Share something</Text>
++          <View style={styles.promptChips}>
++            {['What's your biggest insight today?','The hardest thing about today was…','A small win I'm proud of…'].map(seed => (
++              <Pressable key={seed} onPress={()=>openShare({ type:'status', visibility:feedView, promptSeed:seed })} style={styles.chip}>
++                <Text style={styles.chipText}>{seed}</Text>
++              </Pressable>
++            ))}
++          </View>
++          <View style={styles.quickRow}>
++            <Pressable onPress={()=>openShare({ type:'status', visibility:feedView })} style={styles.quickBtn}><Text style={styles.quickText}>✍️ Status</Text></Pressable>
++            <Pressable onPress={()=>openShare({ type:'photo', visibility:feedView })} style={styles.quickBtn}><Text style={styles.quickText}>🖼️ Photo</Text></Pressable>
++            <Pressable onPress={()=>openShare({ type:'audio', visibility:feedView })} style={styles.quickBtn}><Text style={styles.quickText}>🎙️ Audio</Text></Pressable>
++          </View>
++        </View>
++
++        {/* Feed */}
++        {posts.map(p => <PostRow key={p.id} post={p} which={feedView} />)}
++      </ScrollView>
++      <ShareComposer />
++    </>
+   );
+ };
+-const Post = require('./PostCard').PostCard;
++const PostRow = require('./PostCard').PostCard;
+ 
+ const styles=StyleSheet.create({
+-  switch:{ flexDirection:'row', gap:8, marginBottom:16 },
++  switch:{ flexDirection:'row', gap:8, marginBottom:16 },
+   tab:{ flex:1, borderWidth:1, borderColor:'rgba(255,255,255,0.08)', borderRadius:16, paddingVertical:12, alignItems:'center' },
+   active:{ backgroundColor:'rgba(255,255,255,0.06)' },
+   tabText:{ color:'#FFFFFF', fontWeight:'700' },
++  promptCard:{ borderWidth:1, borderColor:'rgba(255,255,255,0.1)', backgroundColor:'rgba(255,255,255,0.04)', borderRadius:16, padding:14, marginBottom:16 },
++  promptTitle:{ color:'#FFF', fontWeight:'800', marginBottom:8 },
++  promptChips:{ flexDirection:'row', flexWrap:'wrap', gap:8, marginBottom:10 },
++  chip:{ borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.06)', borderRadius:999, paddingVertical:8, paddingHorizontal:12 },
++  chipText:{ color:'#ECEDEF' },
++  quickRow:{ flexDirection:'row', gap:8 },
++  quickBtn:{ flex:1, alignItems:'center', paddingVertical:10, borderRadius:12, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.06)' },
++  quickText:{ color:'#FFF', fontWeight:'700' },
+ });
+diff --git a/src/features/daily/ActionItem.tsx b/src/features/daily/ActionItem.tsx
+index aaaaaaa..bbbbbbb 100644
+--- a/src/features/daily/ActionItem.tsx
++++ b/src/features/daily/ActionItem.tsx
+@@ -1,29 +1,44 @@
+ import React from 'react';
+ import { View, Text, Pressable, StyleSheet } from 'react-native';
+ import { CheckCircle, Circle } from 'lucide-react-native';
+ import * as Haptics from 'expo-haptics';
+ import { GlassSurface } from '../../ui/GlassSurface';
+ import { useStore } from '../../state/rootStore';
+ 
+-export const ActionItem: React.FC<{ id:string; title:string; goalTitle?:string; done?:boolean; streak:number; }> = ({ id, title, goalTitle, done, streak }) => {
+-  const toggle = useStore(s=>s.toggleAction);
++export const ActionItem: React.FC<{ id:string; title:string; goalTitle?:string; done?:boolean; streak:number; goalColor?:string; }> = ({ id, title, goalTitle, done, streak, goalColor }) => {
++  const toggle = useStore(s=>s.toggleAction);
++  const openShare = useStore(s=>s.openShare);
+   return (
+     <GlassSurface style={styles.card}>
+-      <Pressable onPress={() => { toggle(id); Haptics.selectionAsync(); }} style={styles.row}>
++      <Pressable
++        onPress={() => {
++          toggle(id);
++          Haptics.selectionAsync();
++          // Offer share after completion
++          if (!done) {
++            openShare({
++              type:'checkin',
++              visibility:'circle',
++              actionTitle: title,
++              goal: goalTitle,
++              streak,
++              goalColor,
++            });
++          }
++        }}
++        style={styles.row}
++      >
+         {done ? <CheckCircle color="#FFFFFF" /> : <Circle color="rgba(255,255,255,0.5)"/>}
+         <View style={{ flex:1, marginLeft:12 }}>
+           <Text style={styles.title}>{title}</Text>
+           {goalTitle ? <Text style={styles.meta}>{goalTitle} • 🔥 {streak}</Text> : <Text style={styles.meta}>🔥 {streak}</Text>}
+         </View>
+         <Text style={styles.done}>{done ? 'Done' : ''}</Text>
+       </Pressable>
+     </GlassSurface>
+   );
+ };
+ const styles = StyleSheet.create({
+   card:{ marginBottom:12, padding:14 },
+   row:{ flexDirection:'row', alignItems:'center' },
+   title:{ color:'#FFF', fontWeight:'700' },
+   meta:{ color:'rgba(255,255,255,0.6)', marginTop:2 },
+   done:{ color:'#8A8F99' }
+ });
