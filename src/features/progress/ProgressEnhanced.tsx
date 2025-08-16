@@ -14,17 +14,20 @@ import Animated, {
 import { 
   TrendingUp, Target, Trophy, Zap, Calendar, 
   BarChart3, Clock, Award, Flame, Brain,
-  ArrowUp, ArrowDown, Activity
+  ArrowUp, ArrowDown, Activity, Users
 } from 'lucide-react-native';
 import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
 import { GoldParticles } from '../../ui/GoldParticles';
 import { useStore } from '../../state/rootStore';
+import { CircleProgress } from './CircleProgress';
 
 const { width } = Dimensions.get('window');
 
 type Period = 'day' | 'week' | 'month' | 'year';
+type MainTab = 'personal' | 'circle';
 
 export const ProgressEnhanced = () => {
+  const [mainTab, setMainTab] = useState<MainTab>('personal');
   const [selectedPeriod, setPeriod] = useState<Period>('week');
   const goals = useStore(s => s.goals);
   const actions = useStore(s => s.actions);
@@ -104,6 +107,35 @@ export const ProgressEnhanced = () => {
       <LuxuryGradientBackground variant="silver">
         <GoldParticles variant="mixed" particleCount={12} />
         
+        {/* Main Tab Selector - Always visible */}
+        <View style={styles.mainTabWrapper}>
+          <View style={styles.mainTabContainer}>
+            <Pressable
+              onPress={() => setMainTab('personal')}
+              style={[styles.mainTab, mainTab === 'personal' && styles.mainTabActive]}
+            >
+              <BarChart3 size={16} color={mainTab === 'personal' ? '#FFD700' : '#C0C0C0'} />
+              <Text style={[styles.mainTabText, mainTab === 'personal' && styles.mainTabTextActive]}>
+                Personal
+              </Text>
+            </Pressable>
+            
+            <Pressable
+              onPress={() => setMainTab('circle')}
+              style={[styles.mainTab, mainTab === 'circle' && styles.mainTabActive]}
+            >
+              <Users size={16} color={mainTab === 'circle' ? '#FFD700' : '#C0C0C0'} />
+              <Text style={[styles.mainTabText, mainTab === 'circle' && styles.mainTabTextActive]}>
+                Circle
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Show Circle Progress if that tab is selected */}
+        {mainTab === 'circle' ? (
+          <CircleProgress />
+        ) : (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -337,49 +369,89 @@ export const ProgressEnhanced = () => {
             </BlurView>
           </View>
 
-          {/* CALENDAR HEATMAP */}
+          {/* STREAK VISUALIZATION */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Calendar size={20} color="#C0C0C0" />
-              <Text style={styles.sectionTitle}>Activity Heatmap</Text>
+              <Flame size={20} color="#FFD700" />
+              <Text style={styles.sectionTitle}>Streak History</Text>
             </View>
 
-            <BlurView intensity={25} tint="dark" style={styles.heatmapCard}>
+            <BlurView intensity={25} tint="dark" style={styles.streakCard}>
               <LinearGradient
-                colors={['rgba(192,192,192,0.08)', 'rgba(255,215,0,0.03)']}
+                colors={['rgba(255,215,0,0.08)', 'rgba(192,192,192,0.03)']}
                 style={StyleSheet.absoluteFillObject}
               />
               
-              <View style={styles.heatmapGrid}>
-                {Array.from({ length: 35 }, (_, i) => {
-                  const intensity = Math.random();
-                  const backgroundColor = 
-                    intensity > 0.8 ? '#FFD700' :
-                    intensity > 0.6 ? '#F7E7CE' :
-                    intensity > 0.4 ? '#C0C0C0' :
-                    intensity > 0.2 ? '#3A3A3A' :
-                    '#1A1A1A';
-                  
-                  return (
-                    <View
-                      key={i}
-                      style={[
-                        styles.heatmapCell,
-                        { backgroundColor },
-                      ]}
-                    />
-                  );
-                })}
+              {/* Current streaks display */}
+              <View style={styles.streakHeader}>
+                <Text style={styles.streakTitle}>Active Streaks</Text>
+                <View style={styles.streakBadge}>
+                  <Flame size={16} color="#FFD700" />
+                  <Text style={styles.streakCount}>5 goals on fire</Text>
+                </View>
               </View>
               
-              <View style={styles.heatmapLegend}>
-                <Text style={styles.legendLabel}>Less</Text>
-                <View style={styles.legendColors}>
-                  {['#1A1A1A', '#3A3A3A', '#C0C0C0', '#F7E7CE', '#FFD700'].map(color => (
-                    <View key={color} style={[styles.legendColor, { backgroundColor: color }]} />
-                  ))}
+              {/* Streak bars */}
+              <View style={styles.streakBars}>
+                <View style={styles.streakItem}>
+                  <Text style={styles.streakLabel}>Morning Workout</Text>
+                  <View style={styles.streakBarContainer}>
+                    <LinearGradient
+                      colors={['#FFD700', '#F7E7CE']}
+                      style={[styles.streakBar, { width: '80%' }]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    />
+                    <Text style={styles.streakDays}>24 days</Text>
+                  </View>
                 </View>
-                <Text style={styles.legendLabel}>More</Text>
+                
+                <View style={styles.streakItem}>
+                  <Text style={styles.streakLabel}>Meditation</Text>
+                  <View style={styles.streakBarContainer}>
+                    <LinearGradient
+                      colors={['#FFD700', '#F7E7CE']}
+                      style={[styles.streakBar, { width: '100%' }]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    />
+                    <Text style={styles.streakDays}>30 days 🔥</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.streakItem}>
+                  <Text style={styles.streakLabel}>Reading</Text>
+                  <View style={styles.streakBarContainer}>
+                    <LinearGradient
+                      colors={['#C0C0C0', '#E5E4E2']}
+                      style={[styles.streakBar, { width: '40%' }]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    />
+                    <Text style={styles.streakDays}>12 days</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.streakItem}>
+                  <Text style={styles.streakLabel}>No Social Media</Text>
+                  <View style={styles.streakBarContainer}>
+                    <LinearGradient
+                      colors={['#C0C0C0', '#E5E4E2']}
+                      style={[styles.streakBar, { width: '20%' }]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    />
+                    <Text style={styles.streakDays}>6 days</Text>
+                  </View>
+                </View>
+              </View>
+              
+              {/* Longest streak highlight */}
+              <View style={styles.longestStreak}>
+                <Trophy size={20} color="#FFD700" />
+                <Text style={styles.longestStreakText}>
+                  Longest streak: <Text style={styles.longestStreakNumber}>45 days</Text> (Meditation)
+                </Text>
               </View>
             </BlurView>
           </View>
@@ -421,6 +493,7 @@ export const ProgressEnhanced = () => {
             </BlurView>
           </View>
         </ScrollView>
+        )}
       </LuxuryGradientBackground>
     </View>
   );
@@ -436,6 +509,41 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 100,
+  },
+
+  // Main Tabs
+  mainTabWrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  mainTabContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  mainTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(192,192,192,0.1)',
+  },
+  mainTabActive: {
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  mainTabText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  mainTabTextActive: {
+    color: '#FFD700',
   },
 
   // Hero Card
@@ -727,43 +835,92 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
   },
 
-  // Heatmap
-  heatmapCard: {
+  // Streak Visualization
+  streakCard: {
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(192,192,192,0.1)',
+    borderColor: 'rgba(255,215,0,0.1)',
     overflow: 'hidden',
   },
-  heatmapGrid: {
+  streakHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 3,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  heatmapCell: {
-    width: (width - 32 - 36) / 7,
-    height: (width - 32 - 36) / 7,
-    borderRadius: 2,
+  streakTitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
-  heatmapLegend: {
+  streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)',
+  },
+  streakCount: {
+    fontSize: 12,
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+  streakBars: {
+    gap: 16,
+    marginBottom: 20,
+  },
+  streakItem: {
     gap: 8,
   },
-  legendColors: {
+  streakLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  streakBarContainer: {
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  streakBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 14,
+  },
+  streakDays: {
+    position: 'absolute',
+    right: 12,
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  longestStreak: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.15)',
   },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
+  longestStreakText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
   },
-  legendLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
+  longestStreakNumber: {
+    color: '#FFD700',
+    fontWeight: '700',
   },
 
   // Momentum

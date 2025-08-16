@@ -1,10 +1,12 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, TextInput, Image, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, TextInput, Image, Platform, Dimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { GlassSurface } from '../../ui/GlassSurface';
 import { useStore } from '../../state/rootStore';
 import { Visibility } from '../../state/slices/uiSlice';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export const ShareComposer: React.FC = () => {
   const shareOpen = useStore(s=>s.shareOpen);
@@ -91,7 +93,8 @@ export const ShareComposer: React.FC = () => {
   return (
     <Modal visible={shareOpen} transparent animationType="fade" onRequestClose={close}>
       <View style={styles.overlay}>
-        <GlassSurface style={styles.sheet}>
+        <View style={styles.modalContainer}>
+          <GlassSurface style={styles.sheet}>
           <Text style={styles.title}>Share</Text>
           {/* Visibility toggle */}
           <View style={styles.row}>
@@ -137,16 +140,29 @@ export const ShareComposer: React.FC = () => {
             <Pressable onPress={close} style={styles.secondary}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
             <Pressable onPress={publish} style={styles.primary}><Text style={styles.primaryText}>Publish</Text></Pressable>
           </View>
-        </GlassSurface>
-        <Pressable onPress={close} style={{height:40}} />
+          </GlassSurface>
+          <Pressable onPress={close} style={{height:40}} />
+        </View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay:{ flex:1, backgroundColor:'rgba(0,0,0,0.9)', justifyContent:'center', padding:16 },
-  sheet:{ padding:16 },
+  overlay:{ 
+    flex: 1,
+    backgroundColor:'rgba(0,0,0,0.9)', 
+    justifyContent:'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 375 : '100%', // Constrain to phone width on web
+    paddingHorizontal: 16,
+  },
+  sheet:{ 
+    padding:16,
+  },
   title:{ color:'#FFF', fontWeight:'800', fontSize:18, marginBottom:8 },
   row:{ flexDirection:'row', gap:8, marginBottom:12 },
   visPill:{ flex:1, alignItems:'center', paddingVertical:10, borderRadius:999, borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.04)' },

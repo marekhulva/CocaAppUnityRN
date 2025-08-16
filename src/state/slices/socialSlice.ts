@@ -21,6 +21,19 @@ export type Post = {
   goal?: string;
   streak?: number;
   goalColor?: string;           // hex used for chip/glow
+  // New streak metrics
+  streakMetrics?: {
+    graceStreak?: { done: number; window: number; label: string };
+    recovery?: { isComeback: boolean; label?: string };
+    momentum?: { score: number; trend: 'up' | 'down' | 'stable' };
+    monthProgress?: { completed: number; total: number };
+    intensity?: 'Low' | 'Medium' | 'High';
+  };
+  // Social proof
+  socialProof?: {
+    inspired?: number;  // "3 people boosted their streak after seeing this"
+    milestone?: string; // "First 7-day streak!"
+  };
 };
 
 export type SocialSlice = {
@@ -35,7 +48,14 @@ export const createSocialSlice: StateCreator<SocialSlice> = (set) => ({
     {
       id:'p1', user:'Alex', avatar:'🏃', visibility:'circle',
       type:'checkin', content:'Crushed HIIT 💪', actionTitle:'Morning workout', goal:'Lose 10 lbs', streak:8, goalColor:'#10B981',
-      reactions:{'👏':5,'💪':3,'🔥':4}, time:'2h'
+      reactions:{'👏':5,'💪':3,'🔥':4}, time:'2h',
+      streakMetrics: {
+        graceStreak: { done: 13, window: 14, label: '13/14 Grace Streak ✨' },
+        momentum: { score: 85, trend: 'up' },
+        monthProgress: { completed: 18, total: 25 },
+        intensity: 'High'
+      },
+      socialProof: { inspired: 3 }
     },
     {
       id:'p3', user:'Jordan', avatar:'🧘', visibility:'circle',

@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
 import { ShareComposer } from './ShareComposer';
-import { PostCardEnhanced } from './components/PostCardEnhanced';
+import { PostCard } from './components/PostCard';
 import { Post } from '../../state/slices/socialSlice';
 import { PromptChips } from './components/PromptChips';
 import { ComposerRow } from './components/ComposerRow';
@@ -94,7 +94,7 @@ export const SocialScreen = () => {
         {/* Posts */}
         <View style={styles.postsContainer}>
           {posts.map(p => (
-            <PostCardEnhanced
+            <PostCard
               key={p.id}
               post={p}
               onReact={(emoji) => react(p.id, emoji, feedView)}
