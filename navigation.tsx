@@ -50,18 +50,6 @@ export const RootNav = () => {
           },
         }}
       >
-        <Tab.Screen name="Daily" component={DailyScreenVibrant}
-          options={{ 
-            tabBarIcon: ({color,size,focused}) => (
-              <View style={{
-                padding: 8,
-                borderRadius: 16,
-                backgroundColor: focused ? 'rgba(255,215,0,0.15)' : 'transparent',
-              }}>
-                <CheckCircle2 color={focused ? '#FFD700' : color} size={size}/>
-              </View>
-            )
-          }} />
         <Tab.Screen name="Social" component={SocialScreen}
           options={{ 
             tabBarIcon: ({color,size,focused}) => (
@@ -71,6 +59,18 @@ export const RootNav = () => {
                 backgroundColor: focused ? 'rgba(192,192,192,0.15)' : 'transparent',
               }}>
                 <House color={focused ? '#C0C0C0' : color} size={size}/>
+              </View>
+            )
+          }} />
+        <Tab.Screen name="Daily" component={DailyScreenVibrant}
+          options={{ 
+            tabBarIcon: ({color,size,focused}) => (
+              <View style={{
+                padding: 8,
+                borderRadius: 16,
+                backgroundColor: focused ? 'rgba(255,215,0,0.15)' : 'transparent',
+              }}>
+                <CheckCircle2 color={focused ? '#FFD700' : color} size={size}/>
               </View>
             )
           }} />

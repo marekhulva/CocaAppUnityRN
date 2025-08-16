@@ -5,12 +5,19 @@ import { BlurView } from 'expo-blur';
 import { useStore } from '../../state/rootStore';
 import { ShareComposer } from './ShareComposer';
 import { PostCard } from './components/PostCard';
+import { FeedCard } from './components/FeedCard';
 import { Post } from '../../state/slices/socialSlice';
 import { PromptChips } from './components/PromptChips';
 import { ComposerRow } from './components/ComposerRow';
 import { LuxuryGradientBackground } from '../../ui/LuxuryGradientBackground';
 import { GoldParticles } from '../../ui/GoldParticles';
+import { GradientBackground } from '../../ui/atoms/GradientBackground';
 import { LuxuryTheme } from '../../design/luxuryTheme';
+import { useSocialV1 } from '../../utils/featureFlags';
+import { LiquidGlassTabs } from './components/LiquidGlassTabs';
+import { PostPromptCard } from './components/PostPromptCard';
+import { NeonDivider } from '../../ui/atoms/NeonDivider';
+import { AnimatedFeedView } from './components/AnimatedFeedView';
 
 export const SocialScreen = () => {
   const feedView = useStore(s=>s.feedView);
@@ -20,10 +27,14 @@ export const SocialScreen = () => {
   const posts: Post[] = feedView==='circle'?circle:follow;
   const openShare = useStore(s=>s.openShare);
   const react = useStore(s=>s.react);
+  const v1Enabled = useSocialV1();
+
+  // Use enhanced gradient background if V1 is enabled
+  const BackgroundComponent = v1Enabled ? GradientBackground : LuxuryGradientBackground;
 
   return (
-    <View style={styles.container}>
-      <LuxuryGradientBackground variant="mixed">
+    <View style={[styles.container, v1Enabled && styles.containerV1]}>
+      <BackgroundComponent variant={v1Enabled ? "radial" : "mixed"}>
         <GoldParticles
           variant="mixed"
           particleCount={10}
@@ -34,77 +45,52 @@ export const SocialScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-        {/* Segment tabs (non-sticky, scrolls with content) */}
-        <View style={styles.tabContainer}>
-          <Pressable
-            onPress={() => setFeedView('circle')}
-            style={[
-              styles.tab,
-              feedView === 'circle' && styles.tabActive
-            ]}
-          >
-            <Text style={[
-              styles.tabText,
-              feedView === 'circle' && styles.tabTextActive
-            ]}>Circle</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setFeedView('follow')}
-            style={[
-              styles.tab,
-              feedView === 'follow' && styles.tabActive
-            ]}
-          >
-            <Text style={[
-              styles.tabText,
-              feedView === 'follow' && styles.tabTextActive
-            ]}>Follow</Text>
-          </Pressable>
-        </View>
-
-        {/* Header: Share something (scrolls with feed) */}
-        <BlurView intensity={20} tint="dark" style={styles.shareCard}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.03)']}
-            style={StyleSheet.absoluteFillObject}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          {/* Liquid Glass Tabs */}
+          <LiquidGlassTabs
+            activeTab={feedView}
+            onTabChange={setFeedView}
           />
-          <View style={styles.shareCardContent}>
-            <Text style={styles.shareTitle}>Share something</Text>
-            <View style={styles.promptSection}>
-              <PromptChips
-                onPick={(text) => {
-                  openShare({ 
-                    type: 'status', 
-                    visibility: feedView, 
-                    promptSeed: text 
-                  });
-                }}
-              />
-            </View>
-            <ComposerRow
-              onStatus={() => openShare({ type: 'status', visibility: feedView })}
-              onPhoto={() => openShare({ type: 'photo', visibility: feedView })}
-              onAudio={() => openShare({ type: 'audio', visibility: feedView })}
-            />
-          </View>
-        </BlurView>
 
-        {/* Posts */}
-        <View style={styles.postsContainer}>
-          {posts.map(p => (
-            <PostCard
-              key={p.id}
-              post={p}
-              onReact={(emoji) => react(p.id, emoji, feedView)}
-            />
-          ))}
-        </View>
+          {/* Post Prompt Card - Scrollable */}
+          <PostPromptCard
+            onOpenComposer={(type) => openShare({ 
+              type, 
+              visibility: feedView 
+            })}
+          />
+
+          {/* Neon Divider between create and consume */}
+          <NeonDivider 
+            color="rgba(255,255,255,0.1)"
+            thickness={1}
+            margin={24}
+            animated={true}
+          />
+
+          {/* Animated Feed View */}
+          <AnimatedFeedView feedKey={feedView}>
+            <View style={styles.postsContainer}>
+              {posts.map(p => (
+                <FeedCard
+                  key={p.id}
+                  post={p}
+                  onReact={(emoji) => react(p.id, emoji, feedView)}
+                  onComment={() => {
+                    // TODO: Open comment modal
+                    console.log('Comment on post:', p.id);
+                  }}
+                  onProfileTap={() => {
+                    // TODO: Navigate to profile
+                    console.log('View profile:', p.user);
+                  }}
+                />
+              ))}
+            </View>
+          </AnimatedFeedView>
         </ScrollView>
 
         <ShareComposer />
-      </LuxuryGradientBackground>
+      </BackgroundComponent>
     </View>
   );
 };
@@ -114,12 +100,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  containerV1: {
+    backgroundColor: LuxuryTheme.colors.background.primary,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingTop: 24,     // Increased top padding
+    paddingHorizontal: 0, // Remove horizontal padding for full-width tabs
+    paddingBottom: 120,  // More space at bottom
   },
   tabContainer: {
     flexDirection: 'row',
@@ -178,6 +168,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   postsContainer: {
-    gap: 4,
+    gap: 12,  // Increased gap between cards
+    paddingHorizontal: 16,  // Add horizontal padding for posts
   },
 });
