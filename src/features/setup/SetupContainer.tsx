@@ -14,6 +14,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  withSequence,
   interpolate,
   FadeIn,
   FadeOut,
@@ -246,11 +247,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 5,
   },
   stepDots: {
     flexDirection: 'row',
@@ -266,11 +262,6 @@ const styles = StyleSheet.create({
   stepDotActive: {
     backgroundColor: '#FFD700',
     width: 24,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
   },
   stepDotCompleted: {
     backgroundColor: 'rgba(255,215,0,0.5)',

@@ -356,11 +356,7 @@ const styles = StyleSheet.create({
   },
   inputWrapperFocused: {
     borderColor: 'rgba(255,215,0,0.3)',
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    backgroundColor: 'rgba(255,215,0,0.02)',
   },
   input: {
     color: '#FFFFFF',
@@ -400,11 +396,6 @@ const styles = StyleSheet.create({
   privacyPillActive: {
     borderColor: 'rgba(255,215,0,0.3)',
     backgroundColor: 'rgba(255,255,255,0.03)',
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
   },
   privacyPillContent: {
     flexDirection: 'row',
@@ -448,11 +439,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 10,
   },
   ctaDisabled: {
     backgroundColor: 'rgba(255,255,255,0.03)',
