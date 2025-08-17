@@ -11,6 +11,8 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LuxuryTheme } from '../../../design/luxuryTheme';
+import { LuxuryColors } from '../../../design/luxuryColors';
+import { isFeatureEnabled } from '../../../utils/featureFlags';
 
 const { width } = Dimensions.get('window');
 const TAB_WIDTH = (width - 48) / 2;
@@ -26,6 +28,8 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 }) => {
   const slideAnim = useSharedValue(activeTab === 'circle' ? 0 : 1);
   const glowAnim = useSharedValue(0);
+  const isLuxury = isFeatureEnabled('ui.social.luxuryTheme');
+  const styles = React.useMemo(() => createStyles(isLuxury), [isLuxury]);
 
   React.useEffect(() => {
     slideAnim.value = withSpring(activeTab === 'circle' ? 0 : 1, {
@@ -51,23 +55,49 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
 
   return (
     <View style={styles.container}>
-      <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
-        <LinearGradient
-          colors={['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']}
-          style={StyleSheet.absoluteFillObject}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
+      <BlurView intensity={isLuxury ? 10 : 30} tint="dark" style={[
+        styles.blurContainer,
+        isLuxury && typeof LuxuryColors !== 'undefined' && { backgroundColor: LuxuryColors.black.pure }
+      ]}>
+        {/* Conditional gradient based on luxury theme */}
+        {!isLuxury ? (
+          <>
+            <LinearGradient
+              colors={['#E7B43A', '#C0C0C0', '#E7B43A']}
+              style={[StyleSheet.absoluteFillObject, { opacity: 0.15 }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              locations={[0, 0.5, 1]}
+            />
+            <LinearGradient
+              colors={['rgba(18,18,18,0.7)', 'rgba(18,18,18,0.85)']}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          </>
+        ) : null}
         
-        {/* Active indicator with liquid animation */}
+        {/* Active indicator with conditional styling */}
         <Animated.View style={[styles.indicator, indicatorStyle]}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.08)']}
-            style={styles.indicatorGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          />
-          <Animated.View style={[styles.indicatorGlow, glowStyle]} />
+          {isLuxury && typeof LuxuryColors !== 'undefined' ? (
+            <View style={[styles.indicatorGradient, { backgroundColor: LuxuryColors.glow.goldSubtle }]} />
+          ) : (
+            <LinearGradient
+              colors={activeTab === 'circle' ? 
+                ['rgba(231,180,58,0.3)', 'rgba(231,180,58,0.15)'] : 
+                ['rgba(192,192,192,0.3)', 'rgba(192,192,192,0.15)']
+              }
+              style={styles.indicatorGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          )}
+          <Animated.View style={[
+            styles.indicatorGlow, 
+            glowStyle,
+            isLuxury && typeof LuxuryColors !== 'undefined' && { borderColor: LuxuryColors.gold.primary }
+          ]} />
         </Animated.View>
         
         {/* Tab buttons */}
@@ -78,18 +108,26 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
           >
             <Text style={[
               styles.tabText,
-              activeTab === 'circle' && styles.tabTextActive
+              activeTab === 'circle' && styles.tabTextActive,
+              isLuxury && typeof LuxuryColors !== 'undefined' && { 
+                color: activeTab === 'circle' ? LuxuryColors.gold.primary : LuxuryColors.silver.bright 
+              }
             ]}>
-              👥 Circle
+              {!isLuxury && '👥 '}Circle
             </Text>
             {activeTab === 'circle' && (
               <Animated.View style={[styles.underline, glowStyle]}>
-                <LinearGradient
-                  colors={[LuxuryTheme.colors.primary.gold, LuxuryTheme.colors.primary.champagne]}
-                  style={styles.underlineGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                />
+                {isLuxury && typeof LuxuryColors !== 'undefined' ? (
+                  <View style={[styles.underlineGradient, { backgroundColor: LuxuryColors.gold.primary }]} />
+                ) : (
+                  <LinearGradient
+                    colors={['#FFD700', '#FFA500', '#FFD700']}
+                    style={styles.underlineGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    locations={[0, 0.5, 1]}
+                  />
+                )}
               </Animated.View>
             )}
           </Pressable>
@@ -100,18 +138,26 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
           >
             <Text style={[
               styles.tabText,
-              activeTab === 'follow' && styles.tabTextActive
+              activeTab === 'follow' && styles.tabTextActive,
+              isLuxury && typeof LuxuryColors !== 'undefined' && { 
+                color: activeTab === 'follow' ? LuxuryColors.gold.primary : LuxuryColors.silver.bright 
+              }
             ]}>
-              🌍 Following
+              {!isLuxury && '🌍 '}Following
             </Text>
             {activeTab === 'follow' && (
               <Animated.View style={[styles.underline, glowStyle]}>
-                <LinearGradient
-                  colors={[LuxuryTheme.colors.primary.silver, LuxuryTheme.colors.primary.platinum]}
-                  style={styles.underlineGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                />
+                {isLuxury && typeof LuxuryColors !== 'undefined' ? (
+                  <View style={[styles.underlineGradient, { backgroundColor: LuxuryColors.gold.primary }]} />
+                ) : (
+                  <LinearGradient
+                    colors={['#C0C0C0', '#E5E4E2', '#C0C0C0']}
+                    style={styles.underlineGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    locations={[0, 0.5, 1]}
+                  />
+                )}
               </Animated.View>
             )}
           </Pressable>
@@ -121,24 +167,25 @@ export const LiquidGlassTabs: React.FC<LiquidGlassTabsProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isLuxury: boolean) => StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginVertical: 16,
-    height: 48,
-    borderRadius: 24,
+    height: 52,
+    borderRadius: 26,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.gold.primary : '#E7B43A',
+    shadowOffset: { width: 0, height: isLuxury ? 0 : 6 },
+    shadowOpacity: isLuxury ? 0.2 : 0.15,
+    shadowRadius: isLuxury ? 8 : 12,
+    elevation: isLuxury ? 3 : 5,
   },
   blurContainer: {
     flex: 1,
-    borderRadius: 24,
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.gold.primary : 'rgba(255,255,255,0.15)',
+    backgroundColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.black.pure : 'rgba(18,18,18,0.5)',
   },
   indicator: {
     position: 'absolute',
@@ -159,7 +206,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.4)',
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   tabsRow: {
     flexDirection: 'row',
@@ -174,22 +225,27 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 15,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
+    color: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.silver.bright : 'rgba(255,255,255,0.5)',
     letterSpacing: 0.5,
   },
   tabTextActive: {
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(255,255,255,0.5)',
+    color: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.gold.primary : '#FFFFFF',
+    textShadowColor: isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.glow.gold : 'rgba(255,255,255,0.6)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
+    textShadowRadius: isLuxury ? 6 : 10,
+    fontWeight: '800',
   },
   underline: {
     position: 'absolute',
-    bottom: 8,
-    width: '60%',
-    height: 2,
-    borderRadius: 1,
+    bottom: 6,
+    width: '70%',
+    height: 3,
+    borderRadius: 2,
     overflow: 'hidden',
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
   },
   underlineGradient: {
     flex: 1,

@@ -5,11 +5,12 @@ import {
   StyleSheet, 
   Pressable, 
   TextInput, 
-  ScrollView,
+  FlatList,
   Dimensions,
   Platform,
   Image,
-  Alert
+  Alert,
+  ViewToken
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -37,131 +38,273 @@ import {
   Settings
 } from 'lucide-react-native';
 import { LuxuryTheme } from '../../../design/luxuryTheme';
+import { LuxuryColors } from '../../../design/luxuryColors';
 import { useStore } from '../../../state/rootStore';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
+import { isFeatureEnabled } from '../../../utils/featureFlags';
+import { FixedPromptCarousel } from './FixedPromptCarousel';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PROMPT_WIDTH = SCREEN_WIDTH - 64;
 
 const PROMPTS = [
-  "What's your biggest insight today? 💡",
-  "What challenged you most today? 🎯",
-  "Drop a photo from your habit grind 📸",
-  "Share a win from today 🏆",
-  "What are you grateful for? 🙏",
-  "How did you push your limits? 💪",
-  "What's keeping you motivated? 🔥",
-  "Share your morning routine ☀️",
+  { text: "What's your biggest insight today?", accent: 'purple' },
+  { text: "What challenged you most today?", accent: 'red' },
+  { text: "Drop a photo from your habit grind", accent: 'teal' },
+  { text: "Share a win from today", accent: 'gold' },
+  { text: "What are you grateful for?", accent: 'purple' },
+  { text: "How did you push your limits?", accent: 'red' },
+  { text: "What's keeping you motivated?", accent: 'gold' },
+  { text: "Share your morning routine", accent: 'teal' },
 ];
+
+// Color system for Coca
+const CocaColors = {
+  gold: '#FFB74D',
+  amber: '#FFA726',
+  teal: '#4DB6AC',
+  green: '#66BB6A',
+  purple: '#9C27B0',
+  blue: '#42A5F5',
+  red: '#EF5350',
+  orange: '#FF7043',
+  dark: '#121212',
+  charcoal: '#1C1C1C',
+  glass: 'rgba(18, 18, 18, 0.85)',
+  silver: '#C0C0C0',
+  neonBlue: '#00D4FF',
+  softGold: '#FFD700',
+};
+
+const getAccentColor = (accent: string) => {
+  switch(accent) {
+    case 'gold': return CocaColors.gold;
+    case 'teal': return CocaColors.teal;
+    case 'purple': return CocaColors.purple;
+    case 'red': return CocaColors.red;
+    default: return CocaColors.amber;
+  }
+};
 
 type PostMode = 'text' | 'photo' | 'audio';
 
 interface PostPromptCardProps {
-  onOpenComposer: (type: 'status' | 'photo' | 'audio') => void;
+  onOpenComposer: (type: 'status' | 'photo' | 'audio', prompt?: string) => void;
 }
 
-// PromptStrip component with horizontal scrolling and dots
+// Improved PromptStrip component with FlatList for perfect snapping
 const PromptStrip: React.FC<{ 
-  prompts: string[];
+  prompts: any[];
   currentIndex: number;
   onIndexChange: (index: number) => void;
-}> = ({ prompts, currentIndex, onIndexChange }) => {
-  const scrollRef = useRef<ScrollView>(null);
-  const fadeAnim = useSharedValue(1);
+  onPromptSelect: (prompt: any) => void;
+}> = ({ prompts, currentIndex, onIndexChange, onPromptSelect }) => {
+  const flatListRef = useRef<FlatList>(null);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const autoRotateTimeoutRef = useRef<NodeJS.Timeout>();
+  const interactionTimeoutRef = useRef<NodeJS.Timeout>();
 
+  // Auto-rotate prompts only when user is not interacting
   useEffect(() => {
-    const timer = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % prompts.length;
-      
-      // Animate fade
-      fadeAnim.value = withSequence(
-        withTiming(0, { duration: 125 }),
-        withTiming(1, { duration: 125 })
-      );
-      
-      setTimeout(() => {
-        onIndexChange(nextIndex);
-        scrollRef.current?.scrollTo({ 
-          x: nextIndex * (SCREEN_WIDTH - 64), 
+    if (!isUserInteracting && prompts.length > 0) {
+      autoRotateTimeoutRef.current = setTimeout(() => {
+        const nextIndex = (currentIndex + 1) % prompts.length;
+        flatListRef.current?.scrollToIndex({ 
+          index: nextIndex, 
           animated: true 
         });
-      }, 125);
-    }, 6000);
+        onIndexChange(nextIndex);
+      }, 8000);
+    }
     
-    return () => clearInterval(timer);
-  }, [currentIndex, prompts.length]);
+    return () => {
+      if (autoRotateTimeoutRef.current) {
+        clearTimeout(autoRotateTimeoutRef.current);
+      }
+    };
+  }, [currentIndex, prompts.length, isUserInteracting]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: fadeAnim.value,
-  }));
+  const handleViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+      onIndexChange(viewableItems[0].index);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+    minimumViewTime: 200,
+  }).current;
+
+  const handlePromptPress = (index: number, prompt: any) => {
+    // Stop auto-rotation when user interacts
+    setIsUserInteracting(true);
+    if (autoRotateTimeoutRef.current) {
+      clearTimeout(autoRotateTimeoutRef.current);
+    }
+    
+    // Scroll to selected prompt
+    flatListRef.current?.scrollToIndex({ 
+      index, 
+      animated: true 
+    });
+    onIndexChange(index);
+    onPromptSelect(prompt);
+    
+    // Resume auto-rotation after 5 seconds
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    interactionTimeoutRef.current = setTimeout(() => {
+      setIsUserInteracting(false);
+    }, 5000);
+  };
+
+  const handleScrollBegin = () => {
+    setIsUserInteracting(true);
+    if (autoRotateTimeoutRef.current) {
+      clearTimeout(autoRotateTimeoutRef.current);
+    }
+  };
+
+  const handleScrollEnd = () => {
+    // Resume auto-rotation after user stops scrolling
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    interactionTimeoutRef.current = setTimeout(() => {
+      setIsUserInteracting(false);
+    }, 3000);
+  };
+
+  const renderPrompt = ({ item, index }: { item: any; index: number }) => {
+    // Ensure item is never empty
+    const displayItem = item || PROMPTS[index % PROMPTS.length];
+    const displayText = typeof displayItem === 'string' ? displayItem : displayItem.text;
+    const accentColor = typeof displayItem === 'string' ? CocaColors.amber : getAccentColor(displayItem.accent);
+    
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          promptStyles.promptItem,
+          pressed && promptStyles.promptItemPressed
+        ]}
+        onPress={() => handlePromptPress(index, displayItem)}
+      >
+        <Text 
+          style={[
+            promptStyles.promptText,
+            index === currentIndex && promptStyles.promptTextActive
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {displayText}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  // Ensure we always have valid prompts
+  const validPrompts = prompts.length > 0 ? prompts : PROMPTS;
 
   return (
     <View style={promptStyles.container}>
-      <ScrollView
-        ref={scrollRef}
+      <FlatList
+        ref={flatListRef}
+        data={validPrompts}
+        renderItem={renderPrompt}
+        keyExtractor={(item, index) => `prompt-${index}-${item}`}
         horizontal
         pagingEnabled
+        snapToAlignment="start"
+        snapToInterval={PROMPT_WIDTH}
+        decelerationRate={0.9}
         showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={(e) => {
-          const newIndex = Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 64));
-          onIndexChange(newIndex);
-        }}
-      >
-        {prompts.map((prompt, index) => (
-          <Animated.View 
-            key={index} 
-            style={[promptStyles.promptItem, animatedStyle]}
-          >
-            <Text style={promptStyles.promptText}>{prompt}</Text>
-          </Animated.View>
-        ))}
-      </ScrollView>
-      
-      <LinearGradient
-        colors={['rgba(231,180,58,0.3)', 'rgba(231,180,58,0.1)', 'transparent']}
-        style={promptStyles.accentLine}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+        onScrollBeginDrag={handleScrollBegin}
+        onMomentumScrollEnd={handleScrollEnd}
+        onViewableItemsChanged={handleViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        getItemLayout={(data, index) => ({
+          length: PROMPT_WIDTH,
+          offset: PROMPT_WIDTH * index,
+          index,
+        })}
+        contentContainerStyle={promptStyles.scrollContent}
+        initialScrollIndex={0}
+        removeClippedSubviews={false}
+        windowSize={3}
+        maxToRenderPerBatch={3}
+        updateCellsBatchingPeriod={100}
       />
-      
-      <View style={promptStyles.indicators}>
-        {prompts.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              promptStyles.dot,
-              index === currentIndex && promptStyles.dotActive
-            ]}
-          />
-        ))}
-      </View>
     </View>
   );
 };
 
-// TextInputCompact component
+// TextInputCompact component with prompt placeholder
 const TextInputCompact: React.FC<{
   value: string;
   onChange: (text: string) => void;
-}> = ({ value, onChange }) => {
+  selectedPrompt?: any;
+  luxuryStyles?: any;
+  isLuxury?: boolean;
+}> = ({ value, onChange, selectedPrompt, luxuryStyles, isLuxury = false }) => {
   const [height, setHeight] = useState(40);
+  const [isFocused, setIsFocused] = useState(false);
+  const glowAnim = useSharedValue(0.5);
+  
+  useEffect(() => {
+    if (isFocused) {
+      glowAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.5, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1
+      );
+    } else {
+      glowAnim.value = withTiming(0.5, { duration: 300 });
+    }
+  }, [isFocused]);
+  
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: interpolate(glowAnim.value, [0.5, 1], [0.3, 0.6]),
+    shadowRadius: interpolate(glowAnim.value, [0.5, 1], [8, 16]),
+  }));
+  
+  const promptText = typeof selectedPrompt === 'string' ? selectedPrompt : selectedPrompt?.text;
   
   return (
-    <View style={textInputStyles.container}>
+    <Animated.View style={[
+      textInputStyles.container, 
+      glowStyle,
+      isLuxury && luxuryStyles?.input,
+      isFocused && isLuxury && luxuryStyles?.inputFocused
+    ]}>
+      {selectedPrompt && !value && (
+        <Text style={[textInputStyles.selectedPrompt, isLuxury && luxuryStyles?.promptText && { color: luxuryStyles.promptText.color }]}>
+          Responding to: {promptText}
+        </Text>
+      )}
       <TextInput
-        style={[textInputStyles.input, { height: Math.min(height, 80) }]}
-        placeholder="Type your response..."
-        placeholderTextColor="rgba(255,255,255,0.4)"
+        style={[
+          textInputStyles.input, 
+          isFocused && textInputStyles.inputFocused,
+          isLuxury && luxuryStyles?.input && { color: luxuryStyles.input.color }
+        ]}
+        placeholder={selectedPrompt ? "Type your response..." : "What's on your mind?"}
+        placeholderTextColor={isLuxury && typeof LuxuryColors !== 'undefined' ? LuxuryColors.text.tertiary : "rgba(255,255,255,0.3)"}
         value={value}
         onChangeText={onChange}
         multiline
         numberOfLines={3}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         onContentSizeChange={(e) => {
           setHeight(Math.max(40, e.nativeEvent.contentSize.height));
         }}
       />
-    </View>
+    </Animated.View>
   );
 };
 
@@ -171,9 +314,15 @@ const PhotoAttachRow: React.FC<{
   caption: string;
   onPhotoSelect: () => void;
   onCaptionChange: (text: string) => void;
-}> = ({ photoUri, caption, onPhotoSelect, onCaptionChange }) => {
+  selectedPrompt?: string;
+}> = ({ photoUri, caption, onPhotoSelect, onCaptionChange, selectedPrompt }) => {
   return (
     <View style={photoStyles.container}>
+      {selectedPrompt && (
+        <Text style={photoStyles.promptContext}>
+          Responding to: {selectedPrompt}
+        </Text>
+      )}
       <Pressable style={photoStyles.photoArea} onPress={onPhotoSelect}>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={photoStyles.thumbnail} />
@@ -206,7 +355,8 @@ const AudioRecorderRow: React.FC<{
   onDelete: () => void;
   onAttach: () => void;
   hasRecording: boolean;
-}> = ({ isRecording, duration, onRecord, onStop, onDelete, onAttach, hasRecording }) => {
+  selectedPrompt?: string;
+}> = ({ isRecording, duration, onRecord, onStop, onDelete, onAttach, hasRecording, selectedPrompt }) => {
   const pulseAnim = useSharedValue(1);
   
   useEffect(() => {
@@ -234,44 +384,70 @@ const AudioRecorderRow: React.FC<{
   };
 
   return (
-    <View style={audioStyles.container}>
-      <Animated.View style={pulseStyle}>
-        <Pressable
-          style={[audioStyles.recordButton, isRecording && audioStyles.recordingActive]}
-          onPress={isRecording ? onStop : onRecord}
-        >
-          {isRecording ? (
-            <Square size={20} color="#FFF" fill="#FFF" />
-          ) : (
-            <Circle size={20} color="#FFF" fill="#FFF" />
-          )}
-        </Pressable>
-      </Animated.View>
-      
-      <View style={audioStyles.waveform}>
-        {[...Array(12)].map((_, i) => (
-          <View 
-            key={i} 
-            style={[
-              audioStyles.bar,
-              { height: Math.random() * 20 + 10 }
-            ]} 
-          />
-        ))}
-      </View>
-      
-      <Text style={audioStyles.timer}>{formatTime(duration)}</Text>
-      
-      {hasRecording && !isRecording && (
-        <>
-          <Pressable style={audioStyles.iconButton} onPress={onDelete}>
-            <Trash2 size={18} color="rgba(255,255,255,0.6)" />
-          </Pressable>
-          <Pressable style={audioStyles.iconButton} onPress={onAttach}>
-            <Check size={18} color={LuxuryTheme.colors.primary.gold} />
-          </Pressable>
-        </>
+    <View>
+      {selectedPrompt && (
+        <Text style={audioStyles.promptContext}>
+          Responding to: {selectedPrompt}
+        </Text>
       )}
+      <View style={audioStyles.container}>
+        <Animated.View style={pulseStyle}>
+          <Pressable
+            style={[audioStyles.recordButton, isRecording && audioStyles.recordingActive]}
+            onPress={isRecording ? onStop : onRecord}
+          >
+            {isRecording ? (
+              <Square size={20} color="#FFF" fill="#FFF" />
+            ) : (
+              <Circle size={20} color="#FFF" fill="#FFF" />
+            )}
+          </Pressable>
+        </Animated.View>
+        
+        <View style={audioStyles.waveform}>
+          {[...Array(12)].map((_, i) => {
+            const heightAnim = useSharedValue(10);
+            
+            useEffect(() => {
+              if (isRecording) {
+                heightAnim.value = withRepeat(
+                  withSequence(
+                    withTiming(Math.random() * 20 + 10, { duration: 300 }),
+                    withTiming(Math.random() * 10 + 5, { duration: 300 })
+                  ),
+                  -1
+                );
+              } else {
+                heightAnim.value = withTiming(10);
+              }
+            }, [isRecording]);
+
+            const barStyle = useAnimatedStyle(() => ({
+              height: heightAnim.value,
+            }));
+
+            return (
+              <Animated.View 
+                key={i} 
+                style={[audioStyles.bar, barStyle]}
+              />
+            );
+          })}
+        </View>
+        
+        <Text style={audioStyles.timer}>{formatTime(duration)}</Text>
+        
+        {hasRecording && !isRecording && (
+          <>
+            <Pressable style={audioStyles.iconButton} onPress={onDelete}>
+              <Trash2 size={18} color="rgba(255,255,255,0.6)" />
+            </Pressable>
+            <Pressable style={audioStyles.iconButton} onPress={onAttach}>
+              <Check size={18} color={LuxuryTheme.colors.primary.gold} />
+            </Pressable>
+          </>
+        )}
+      </View>
     </View>
   );
 };
@@ -280,7 +456,9 @@ const AudioRecorderRow: React.FC<{
 const ModePills: React.FC<{
   activeMode: PostMode;
   onModeChange: (mode: PostMode) => void;
-}> = ({ activeMode, onModeChange }) => {
+  luxuryStyles?: any;
+  isLuxury?: boolean;
+}> = ({ activeMode, onModeChange, luxuryStyles, isLuxury = false }) => {
   const scaleAnims = {
     text: useSharedValue(activeMode === 'text' ? 1 : 1),
     photo: useSharedValue(activeMode === 'photo' ? 1 : 1),
@@ -289,39 +467,78 @@ const ModePills: React.FC<{
 
   const handlePress = (mode: PostMode) => {
     scaleAnims[mode].value = withSequence(
-      withSpring(0.98),
+      withSpring(0.95),
       withSpring(1)
     );
     onModeChange(mode);
   };
+  
+  const getModeColor = (mode: PostMode) => {
+    if (isLuxury && typeof LuxuryColors !== 'undefined') return LuxuryColors.gold.primary;
+    switch(mode) {
+      case 'text': return CocaColors.gold;
+      case 'photo': return CocaColors.silver;
+      case 'audio': return CocaColors.purple;
+    }
+  };
+  
+  const getModeIcon = (mode: PostMode) => {
+    const iconColor = isLuxury && typeof LuxuryColors !== 'undefined'
+      ? (activeMode === mode ? LuxuryColors.black.pure : LuxuryColors.text.secondary)
+      : (activeMode === mode ? '#FFF' : 'rgba(255,255,255,0.5)');
+    
+    switch(mode) {
+      case 'text': return <Type size={14} color={iconColor} />;
+      case 'photo': return <Camera size={14} color={iconColor} />;
+      case 'audio': return <Mic size={14} color={iconColor} />;
+    }
+  };
 
   return (
     <View style={pillStyles.container}>
-      {(['text', 'photo', 'audio'] as PostMode[]).map((mode) => (
-        <Animated.View
-          key={mode}
-          style={useAnimatedStyle(() => ({
-            transform: [{ scale: scaleAnims[mode].value }],
-          }))}
-        >
-          <Pressable
-            style={[
-              pillStyles.pill,
-              activeMode === mode && pillStyles.pillActive
-            ]}
-            onPress={() => handlePress(mode)}
+      {(['text', 'photo', 'audio'] as PostMode[]).map((mode) => {
+        const isActive = activeMode === mode;
+        const modeColor = getModeColor(mode);
+        
+        return (
+          <Animated.View
+            key={mode}
+            style={useAnimatedStyle(() => ({
+              transform: [{ scale: scaleAnims[mode].value }],
+            }))}
           >
-            <Text style={[
-              pillStyles.pillText,
-              activeMode === mode && pillStyles.pillTextActive
-            ]}>
-              {mode === 'text' && '✍️ Text'}
-              {mode === 'photo' && '📷 Photo'}
-              {mode === 'audio' && '🎙️ Audio'}
-            </Text>
-          </Pressable>
-        </Animated.View>
-      ))}
+            <Pressable
+              style={[
+                pillStyles.pill,
+                isActive && pillStyles.pillActive,
+                isLuxury && (isActive ? luxuryStyles?.pillActive : luxuryStyles?.pillInactive)
+              ]}
+              onPress={() => handlePress(mode)}
+            >
+              {isActive && !isLuxury && (
+                <LinearGradient
+                  colors={mode === 'text' ? [CocaColors.gold, CocaColors.orange] :
+                          mode === 'photo' ? [CocaColors.silver, CocaColors.neonBlue] :
+                          [CocaColors.purple, '#E91E63']}
+                  style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+              )}
+              <View style={pillStyles.pillContent}>
+                {getModeIcon(mode)}
+                <Text style={[
+                  pillStyles.pillText,
+                  isActive && pillStyles.pillTextActive,
+                  isLuxury && (isActive ? luxuryStyles?.pillTextActive : luxuryStyles?.pillText)
+                ]}>
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </Text>
+              </View>
+            </Pressable>
+          </Animated.View>
+        );
+      })}
     </View>
   );
 };
@@ -330,13 +547,30 @@ const ModePills: React.FC<{
 const SendButton: React.FC<{
   enabled: boolean;
   onPress: () => void;
-}> = ({ enabled, onPress }) => {
+  luxuryStyles?: any;
+  isLuxury?: boolean;
+}> = ({ enabled, onPress, luxuryStyles, isLuxury = false }) => {
   const scaleAnim = useSharedValue(1);
+  const glowAnim = useSharedValue(0);
+  
+  useEffect(() => {
+    if (enabled) {
+      glowAnim.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1000 }),
+          withTiming(0.3, { duration: 1000 })
+        ),
+        -1
+      );
+    } else {
+      glowAnim.value = withTiming(0, { duration: 200 });
+    }
+  }, [enabled]);
   
   const handlePress = () => {
     if (enabled) {
       scaleAnim.value = withSequence(
-        withSpring(0.95),
+        withSpring(0.9),
         withSpring(1)
       );
       onPress();
@@ -345,17 +579,43 @@ const SendButton: React.FC<{
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleAnim.value }],
-    opacity: withTiming(enabled ? 1 : 0.3, { duration: 200 }),
+    opacity: withTiming(enabled ? 1 : 0.4, { duration: 200 }),
+  }));
+  
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowAnim.value,
   }));
 
   return (
     <Animated.View style={[sendStyles.container, animatedStyle]}>
       <Pressable
-        style={[sendStyles.button, enabled && sendStyles.buttonEnabled]}
+        style={[
+          sendStyles.button,
+          isLuxury && (enabled ? luxuryStyles?.sendButtonEnabled : luxuryStyles?.sendButton)
+        ]}
         onPress={handlePress}
         disabled={!enabled}
       >
-        <Send size={18} color={enabled ? LuxuryTheme.colors.primary.gold : 'rgba(255,255,255,0.3)'} />
+        {enabled && !isLuxury && (
+          <>
+            <Animated.View style={[sendStyles.glowRing, glowStyle]} />
+            <LinearGradient
+              colors={[CocaColors.orange, '#FF1493', CocaColors.neonBlue]}
+              style={sendStyles.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              locations={[0, 0.5, 1]}
+            />
+          </>
+        )}
+        {!enabled && !isLuxury && (
+          <View style={sendStyles.disabledBg} />
+        )}
+        <Send size={18} color={
+          isLuxury && typeof LuxuryColors !== 'undefined'
+            ? (enabled ? LuxuryColors.black.pure : LuxuryColors.text.tertiary)
+            : (enabled ? '#FFFFFF' : 'rgba(255,255,255,0.3)')
+        } />
       </Pressable>
     </Animated.View>
   );
@@ -363,8 +623,11 @@ const SendButton: React.FC<{
 
 // Main PostPromptCard component
 export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }) => {
+  const isLuxury = isFeatureEnabled('ui.social.luxuryTheme');
+  const luxuryStyles = React.useMemo(() => isLuxury ? getLuxuryStyles() : null, [isLuxury]);
   const [mode, setMode] = useState<PostMode>('text');
   const [promptIndex, setPromptIndex] = useState(0);
+  const [selectedPrompt, setSelectedPrompt] = useState<string>('');
   const [textValue, setTextValue] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoCaption, setPhotoCaption] = useState('');
@@ -372,11 +635,27 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [hasRecording, setHasRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  
+  // Check if we should use the fixed carousel
+  const useFixedCarousel = isFeatureEnabled('ui.social.fixedCarousel');
 
   const hasContent = 
     (mode === 'text' && textValue.trim().length > 0) ||
     (mode === 'photo' && photoUri !== null) ||
     (mode === 'audio' && hasRecording);
+
+  const handlePromptSelect = (prompt: any) => {
+    setSelectedPrompt(prompt);
+    const promptText = typeof prompt === 'string' ? prompt : prompt.text;
+    // Automatically switch to appropriate mode based on prompt
+    if (promptText.toLowerCase().includes('photo') || promptText.includes('📸')) {
+      setMode('photo');
+    } else if (promptText.toLowerCase().includes('voice') || promptText.toLowerCase().includes('audio')) {
+      setMode('audio');
+    } else {
+      setMode('text');
+    }
+  };
 
   const handlePhotoSelect = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -427,13 +706,13 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
 
   const handleSend = () => {
     if (hasContent) {
-      // Pass data to existing composer/post handler
+      // Pass selected prompt with the composer
       if (mode === 'text') {
-        onOpenComposer('status');
+        onOpenComposer('status', selectedPrompt);
       } else if (mode === 'photo') {
-        onOpenComposer('photo');
+        onOpenComposer('photo', selectedPrompt);
       } else {
-        onOpenComposer('audio');
+        onOpenComposer('audio', selectedPrompt);
       }
       
       // Reset state
@@ -442,6 +721,7 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
       setPhotoCaption('');
       setHasRecording(false);
       setRecordingDuration(0);
+      setSelectedPrompt('');
     }
   };
 
@@ -455,30 +735,64 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
   }, [isRecording]);
 
   return (
-    <View style={styles.container}>
-      <BlurView intensity={30} tint="dark" style={styles.card}>
-        <LinearGradient
-          colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)']}
-          style={StyleSheet.absoluteFillObject}
-        />
+    <View style={[styles.container, isLuxury && luxuryStyles?.container]}>
+      <BlurView intensity={isLuxury ? 20 : 50} tint="dark" style={[styles.card, isLuxury && luxuryStyles?.card]}>
+        {/* Conditional gradient based on luxury theme */}
+        {isLuxury && typeof LuxuryColors !== 'undefined' ? (
+          <LinearGradient
+            colors={LuxuryColors.gradients.card}
+            style={StyleSheet.absoluteFillObject}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+        ) : (
+          <>
+            <LinearGradient
+              colors={['#C0C0C0', '#2C3539', '#121212']}
+              style={[StyleSheet.absoluteFillObject, { opacity: 0.3 }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              locations={[0, 0.5, 1]}
+            />
+            <LinearGradient
+              colors={['rgba(18,18,18,0.85)', 'rgba(18,18,18,0.95)']}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          </>
+        )}
         
         <View style={styles.cardInner}>
           {/* Prompt Layer */}
           <View style={styles.promptLayer}>
-            <PromptStrip
-              prompts={PROMPTS}
-              currentIndex={promptIndex}
-              onIndexChange={setPromptIndex}
-            />
+            {useFixedCarousel ? (
+              <FixedPromptCarousel
+                prompts={PROMPTS}
+                currentIndex={promptIndex}
+                onIndexChange={setPromptIndex}
+                onPromptSelect={handlePromptSelect}
+              />
+            ) : (
+              <PromptStrip
+                prompts={PROMPTS}
+                currentIndex={promptIndex}
+                onIndexChange={setPromptIndex}
+                onPromptSelect={handlePromptSelect}
+              />
+            )}
           </View>
-          
-          {/* Separator */}
-          <View style={styles.separator} />
           
           {/* Input Layer (mode-aware) */}
           <View style={styles.inputLayer}>
             {mode === 'text' && (
-              <TextInputCompact value={textValue} onChange={setTextValue} />
+              <TextInputCompact 
+                value={textValue} 
+                onChange={setTextValue}
+                selectedPrompt={selectedPrompt}
+                luxuryStyles={luxuryStyles}
+                isLuxury={isLuxury}
+              />
             )}
             {mode === 'photo' && (
               <PhotoAttachRow
@@ -486,6 +800,7 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
                 caption={photoCaption}
                 onPhotoSelect={handlePhotoSelect}
                 onCaptionChange={setPhotoCaption}
+                selectedPrompt={selectedPrompt}
               />
             )}
             {mode === 'audio' && (
@@ -500,14 +815,25 @@ export const PostPromptCard: React.FC<PostPromptCardProps> = ({ onOpenComposer }
                 }}
                 onAttach={() => {}}
                 hasRecording={hasRecording}
+                selectedPrompt={selectedPrompt}
               />
             )}
           </View>
           
           {/* Controls Layer */}
           <View style={styles.controlsLayer}>
-            <ModePills activeMode={mode} onModeChange={setMode} />
-            <SendButton enabled={hasContent} onPress={handleSend} />
+            <ModePills 
+              activeMode={mode} 
+              onModeChange={setMode} 
+              luxuryStyles={luxuryStyles}
+              isLuxury={isLuxury}
+            />
+            <SendButton 
+              enabled={hasContent} 
+              onPress={handleSend} 
+              luxuryStyles={luxuryStyles}
+              isLuxury={isLuxury}
+            />
           </View>
         </View>
       </BlurView>
@@ -520,38 +846,61 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginBottom: 20,
-    borderRadius: 18,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: 'rgba(255,255,255,0.15)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowColor: CocaColors.neonBlue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
   },
   card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,212,255,0.2)',
     overflow: 'hidden',
+    backgroundColor: CocaColors.glass,
   },
   cardInner: {
     padding: 16,
   },
   promptLayer: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'transparent',
     marginHorizontal: -16,
     marginTop: -16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 14,
+    paddingBottom: 0,
   },
-  separator: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 12,
+  selectedPromptBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,184,77,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255,184,77,0.15)',
+  },
+  selectedPromptText: {
+    fontSize: 13,
+    color: CocaColors.amber,
+    flex: 1,
+    fontWeight: '500',
+  },
+  clearPrompt: {
+    padding: 4,
+  },
+  clearPromptText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 16,
   },
   inputLayer: {
-    minHeight: 40,
-    marginBottom: 12,
+    minHeight: 36,
+    marginBottom: 10,
+    marginTop: 0,
   },
   controlsLayer: {
     flexDirection: 'row',
@@ -563,96 +912,144 @@ const styles = StyleSheet.create({
 const promptStyles = StyleSheet.create({
   container: {
     position: 'relative',
+    height: 70,
+  },
+  scrollContent: {
+    alignItems: 'center',
+    paddingHorizontal: 0,
   },
   promptItem: {
-    width: SCREEN_WIDTH - 64,
-    paddingRight: 32,
+    width: PROMPT_WIDTH,
+    paddingHorizontal: 16,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  promptItemPressed: {
+    opacity: 0.9,
   },
   promptText: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.6)',
     fontStyle: 'italic',
     lineHeight: 22,
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  accentLine: {
-    position: 'absolute',
-    bottom: -4,
-    left: 0,
-    right: 100,
-    height: 2,
-    borderRadius: 1,
+  promptTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontStyle: 'normal',
+    textShadowColor: 'rgba(255,255,255,0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
   indicators: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 8,
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
   },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
   },
   dotActive: {
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    width: 20,
+    backgroundColor: 'transparent',
   },
 });
 
 const textInputStyles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(18,18,18,0.6)',
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: CocaColors.silver,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    marginTop: 0,
+  },
+  selectedPrompt: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
   input: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 15,
-    color: '#FFFFFF',
-    lineHeight: 22,
-    minHeight: 40,
-    maxHeight: 80,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 20,
+    minHeight: 36,
+    maxHeight: 60,
+  },
+  inputFocused: {
+    borderColor: CocaColors.neonBlue,
+    backgroundColor: 'rgba(18,18,18,0.8)',
   },
 });
 
 const photoStyles = StyleSheet.create({
   container: {
-    gap: 8,
+    gap: 10,
+  },
+  promptContext: {
+    fontSize: 11,
+    color: CocaColors.teal,
+    marginBottom: 0,
+    fontStyle: 'italic',
+    opacity: 0.8,
   },
   photoArea: {
-    height: 60,
-    borderRadius: 10,
+    height: 64,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   placeholder: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(77,182,172,0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(77,182,172,0.2)',
     borderStyle: 'dashed',
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   placeholderText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: CocaColors.teal,
     fontSize: 14,
+    fontWeight: '500',
   },
   thumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: CocaColors.teal,
   },
   caption: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(18,18,18,0.8)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     fontSize: 14,
     color: '#FFFFFF',
-    height: 36,
+    height: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(77,182,172,0.2)',
   },
 });
 
@@ -662,34 +1059,55 @@ const audioStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 4,
+    backgroundColor: 'rgba(126,87,194,0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(126,87,194,0.15)',
+  },
+  promptContext: {
+    fontSize: 11,
+    color: CocaColors.purple,
+    marginBottom: 0,
+    fontStyle: 'italic',
+    opacity: 0.8,
   },
   recordButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,71,87,0.9)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: CocaColors.purple,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: CocaColors.purple,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 3,
   },
   recordingActive: {
-    backgroundColor: 'rgba(255,71,87,1)',
+    backgroundColor: CocaColors.red,
+    shadowColor: CocaColors.red,
   },
   waveform: {
     flex: 1,
     flexDirection: 'row',
-    gap: 2,
+    gap: 3,
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   bar: {
     width: 3,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: CocaColors.purple,
     borderRadius: 1.5,
+    opacity: 0.6,
   },
   timer: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
+    color: CocaColors.purple,
     fontVariant: ['tabular-nums'],
     minWidth: 50,
+    fontWeight: '600',
   },
   iconButton: {
     padding: 8,
@@ -699,19 +1117,29 @@ const audioStyles = StyleSheet.create({
 const pillStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    position: 'relative',
+    overflow: 'hidden',
   },
   pillActive: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderColor: 'rgba(231,180,58,0.3)',
+    borderColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  pillContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   pillText: {
     fontSize: 13,
@@ -719,27 +1147,121 @@ const pillStyles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
   },
   pillTextActive: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontWeight: '700',
   },
+  pillGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.15,
+  },
 });
+
+// Luxury theme styles - created as a function to avoid initialization errors
+const getLuxuryStyles = () => {
+  // Only create styles if LuxuryColors is available
+  if (typeof LuxuryColors === 'undefined') {
+    return StyleSheet.create({});
+  }
+  
+  return StyleSheet.create({
+    container: {
+      shadowColor: LuxuryColors.glow.gold,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+    },
+    card: {
+      backgroundColor: LuxuryColors.background.card,
+      borderColor: LuxuryColors.borders.subtle,
+    },
+    promptText: {
+      color: LuxuryColors.text.primary,
+    },
+    promptTextActive: {
+      color: LuxuryColors.gold.primary,
+      textShadowColor: LuxuryColors.glow.gold,
+      textShadowRadius: 8,
+    },
+    input: {
+      backgroundColor: LuxuryColors.black.pure,
+      borderColor: LuxuryColors.borders.default,
+      color: LuxuryColors.text.primary,
+    },
+    inputFocused: {
+      borderColor: LuxuryColors.gold.primary,
+      shadowColor: LuxuryColors.glow.gold,
+    },
+    pillInactive: {
+      backgroundColor: 'transparent',
+      borderColor: LuxuryColors.borders.default,
+    },
+    pillActive: {
+      backgroundColor: LuxuryColors.gold.primary,
+      borderColor: LuxuryColors.gold.primary,
+    },
+    pillText: {
+      color: LuxuryColors.text.secondary,
+    },
+    pillTextActive: {
+      color: LuxuryColors.black.pure,
+    },
+    sendButton: {
+      borderColor: LuxuryColors.borders.default,
+    },
+    sendButtonEnabled: {
+      backgroundColor: LuxuryColors.gold.primary,
+      shadowColor: LuxuryColors.glow.gold,
+    },
+  });
+};
 
 const sendStyles = StyleSheet.create({
   container: {
     marginLeft: 'auto',
   },
   button: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#FFA500',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  buttonEnabled: {
-    backgroundColor: 'rgba(231,180,58,0.15)',
-    borderColor: 'rgba(231,180,58,0.3)',
+  gradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  disabledBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 21,
+  },
+  glowRing: {
+    position: 'absolute',
+    top: -12,
+    left: -12,
+    right: -12,
+    bottom: -12,
+    borderRadius: 33,
+    backgroundColor: '#FFA500',
+    opacity: 0.25,
   },
 });
