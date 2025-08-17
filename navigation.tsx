@@ -9,6 +9,8 @@ import { DailyScreenVibrant } from './src/features/daily/DailyScreenVibrant';
 import { SocialScreen } from './src/features/social/SocialScreen';
 import { ProgressEnhanced } from './src/features/progress/ProgressEnhanced';
 import { ProfileEnhanced } from './src/features/profile/ProfileEnhanced';
+import { SetupContainer } from './src/features/setup/SetupContainer';
+import { useStore } from './src/state/rootStore';
 
 const Tab = createBottomTabNavigator();
 
@@ -17,10 +19,8 @@ const navTheme = {
   colors: { ...DefaultTheme.colors, background: 'transparent', card: 'transparent', text: '#FFFFFF', border: 'transparent' },
 };
 
-export const RootNav = () => {
-  return (
-    <NavigationContainer theme={navTheme}>
-      <Tab.Navigator
+const MainNavigator = () => (
+  <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarBackground: () => (
@@ -99,6 +99,18 @@ export const RootNav = () => {
             )
           }} />
       </Tab.Navigator>
+);
+
+export const RootNav = () => {
+  const appState = useStore(s => s.appState);
+  
+  return (
+    <NavigationContainer theme={navTheme}>
+      {appState === 'setup' ? (
+        <SetupContainer />
+      ) : (
+        <MainNavigator />
+      )}
     </NavigationContainer>
   );
 };

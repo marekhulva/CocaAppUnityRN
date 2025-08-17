@@ -25,6 +25,7 @@ export const ProfileEnhanced = () => {
   const profile = useStore(s => s.profile);
   const goals = useStore(s => s.goals);
   const circleFeed = useStore(s => s.circleFeed);
+  const setAppState = useStore(s => s.setAppState);
   
   // Get user's own posts
   const userPosts = circleFeed.filter(post => post.user === (profile?.name || 'User'));
@@ -136,6 +137,18 @@ export const ProfileEnhanced = () => {
                   );
                 })}
               </View>
+
+              {/* Test Setup Button */}
+              <Pressable 
+                onPress={() => setAppState('setup')}
+                style={styles.setupButton}
+              >
+                <LinearGradient
+                  colors={['#FFD700', '#F4C430']}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <Text style={styles.setupButtonText}>Test Goal Setup Wizard</Text>
+              </Pressable>
 
               {/* Signature Stats */}
               <View style={styles.signatureStats}>
@@ -430,6 +443,18 @@ const styles = StyleSheet.create({
   achievementLabel: {
     fontSize: 10,
     color: 'rgba(255,255,255,0.8)',
+  },
+  setupButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 20,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  setupButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '700',
   },
   signatureStats: {
     flexDirection: 'row',
